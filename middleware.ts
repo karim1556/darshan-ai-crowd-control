@@ -87,27 +87,31 @@ export async function middleware(request: NextRequest) {
     .eq('id', user.id)
     .single()
 
-  const userRole = profile?.role || 'pilgrim'
+  const userRole = (profile?.role as string) || null
 
-  // Role-based route protection
-  const roleProtectedRoutes: Record<string, string[]> = {
-    '/admin': ['admin'],
-    '/admin/checkin': ['admin'],
-    '/police': ['police', 'admin'],
-    '/medical': ['medical', 'admin'],
-    '/pilgrim': ['pilgrim', 'admin'], // Pilgrims and admins can access pilgrim routes
-    '/demo': ['admin'], // Only admins can access demo
+  // Debug log to help trace RBAC issues in server logs
+  try {
+    // eslint-disable-next-line no-console
+    console.log('[Middleware] user:', user?.id, 'role:', userRole, 'path:', pathname)
+  } catch (e) {}
+
+  // Map top-level path segment to allowed roles. This is stricter than startsWith checks.
+  const segment = pathname.split('/').filter(Boolean)[0] || ''
+  const segmentRoleMap: Record<string, string[]> = {
+    admin: ['admin'],
+    police: ['police', 'admin'],
+    medical: ['medical', 'admin'],
+    pilgrim: ['pilgrim', 'admin'],
+    demo: ['admin'],
   }
 
-  // Check if the route requires specific roles
-  for (const [route, allowedRoles] of Object.entries(roleProtectedRoutes)) {
-    if (pathname.startsWith(route)) {
-      if (!allowedRoles.includes(userRole)) {
-        const url = request.nextUrl.clone()
-        url.pathname = '/unauthorized'
-        return NextResponse.redirect(url)
-      }
-      break
+  const allowedForSegment = segmentRoleMap[segment]
+  if (allowedForSegment) {
+    // If we don't have a role from profile, deny access to protected segments
+    if (!userRole || !allowedForSegment.includes(userRole)) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/unauthorized'
+      return NextResponse.redirect(url)
     }
   }
 

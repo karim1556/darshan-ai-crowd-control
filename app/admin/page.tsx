@@ -527,6 +527,8 @@ export default function AdminDashboard() {
                     const current = typeof zone.current_count === 'number' ? zone.current_count : 0
                     const cap = typeof zone.capacity === 'number' ? zone.capacity : 0
                     const percentage = cap > 0 ? Math.round((current / cap) * 100) : 0
+                    const updatedAt = zone.updated_at ? new Date(zone.updated_at) : null
+                    const updatedStr = updatedAt && !isNaN(updatedAt.getTime()) ? format(updatedAt, 'HH:mm:ss') : '—'
                     return (
                       <div key={zone.id} className="p-4 border border-border rounded-xl">
                         <div className="flex justify-between items-center mb-3">
@@ -562,7 +564,7 @@ export default function AdminDashboard() {
                           />
                         </div>
                         <p className="text-sm text-muted-foreground mt-2">
-                          {percentage}% utilized • Updated {format(new Date(zone.updated_at), 'HH:mm:ss')}
+                          {percentage}% utilized • Updated {updatedStr}
                         </p>
                       </div>
                     )
