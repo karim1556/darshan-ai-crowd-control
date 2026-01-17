@@ -24,11 +24,14 @@ import {
   Unlock,
   Settings,
   FileText,
-  PieChart
+  PieChart,
+  LogOut
 } from "lucide-react"
 import Link from "next/link"
 import { format } from "date-fns"
 import { toast } from "sonner"
+import { ProtectedRoute } from "@/components/protected-route"
+import { useAuth } from "@/lib/auth-context"
 
 interface ZoneStats {
   id: string
@@ -85,6 +88,7 @@ interface SOSRequest {
 }
 
 export default function AdminDashboard() {
+  const { signOut } = useAuth()
   const [zones, setZones] = useState<ZoneStats[]>([])
   const [bookings, setBookings] = useState<Booking[]>([])
   const [slots, setSlots] = useState<Slot[]>([])
@@ -187,23 +191,6 @@ export default function AdminDashboard() {
     toast.success('Dashboard refreshed')
   }
 
-  const handleSeedData = async () => {
-    try {
-      setLoading(true)
-      const res = await fetch('/api/demo/seed', { method: 'POST' })
-      if (res.ok) {
-        toast.success('Demo data seeded successfully!')
-        await fetchData()
-      } else {
-        toast.error('Failed to seed data')
-      }
-    } catch (error) {
-      toast.error('Error seeding data')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
@@ -236,6 +223,7 @@ export default function AdminDashboard() {
   ]
 
   return (
+    <ProtectedRoute allowedRoles={['admin']}>
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/5">
       {/* Header */}
       <header className="border-b border-border/50 bg-card/80 backdrop-blur-md sticky top-0 z-50">
@@ -265,9 +253,10 @@ export default function AdminDashboard() {
                 QR Check-In
               </Button>
             </Link>
-            <Link href="/">
-              <Button variant="outline" size="sm">Exit</Button>
-            </Link>
+            <Button variant="outline" size="sm" onClick={signOut}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
           </div>
         </div>
       </header>
@@ -946,5 +935,6 @@ export default function AdminDashboard() {
         </AnimatePresence>
       </main>
     </div>
+    </ProtectedRoute>
   )
 }

@@ -1,18 +1,13 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Users, ShieldAlert, Heart, BarChart3 } from "lucide-react"
+import { Users, ShieldAlert, Heart, BarChart3, LogIn } from "lucide-react"
 
 export default function DemoPage() {
   const router = useRouter()
-
-  const handleSeedData = async () => {
-    // Call API to seed data
-    await fetch("/api/demo/seed", { method: "POST" })
-    alert("Demo data seeded successfully!")
-  }
 
   return (
     <div className="min-h-screen bg-background p-8">
@@ -20,9 +15,12 @@ export default function DemoPage() {
         <div className="text-center mb-16">
           <h1 className="text-4xl font-bold mb-4">DARSHAN.AI Demo</h1>
           <p className="text-lg text-muted-foreground mb-8">Select your role to explore the system</p>
-          <Button onClick={handleSeedData} className="mb-8">
-            Seed Demo Data
-          </Button>
+          <Link href="/login">
+            <Button className="mb-8">
+              <LogIn className="w-4 h-4 mr-2" />
+              Sign In to Access Dashboards
+            </Button>
+          </Link>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">

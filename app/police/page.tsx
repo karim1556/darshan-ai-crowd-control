@@ -26,11 +26,14 @@ import {
   Send,
   Grid3X3,
   BarChart3,
-  X
+  X,
+  LogOut
 } from "lucide-react"
 import Link from "next/link"
 import { format } from "date-fns"
 import { toast } from "sonner"
+import { ProtectedRoute } from "@/components/protected-route"
+import { useAuth } from "@/lib/auth-context"
 
 interface SOSIncident {
   id: string
@@ -87,6 +90,7 @@ interface IncidentReport {
 }
 
 export default function PoliceBoard() {
+  const { signOut } = useAuth()
   const [activeTab, setActiveTab] = useState("incidents")
   const [incidents, setIncidents] = useState<SOSIncident[]>([])
   const [units, setUnits] = useState<SecurityUnit[]>([])
@@ -323,6 +327,7 @@ export default function PoliceBoard() {
   const crowdControlUnits = units.filter(u => u.unit_type === 'crowd-control')
 
   return (
+    <ProtectedRoute allowedRoles={['police', 'admin']}>
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5">
       {/* Header */}
       <header className="border-b border-border/50 bg-card/80 backdrop-blur-md sticky top-0 z-50">
@@ -344,6 +349,11 @@ export default function PoliceBoard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {/* Sign Out Button */}
+            <Button variant="outline" size="sm" onClick={signOut}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
             {/* Alerts Button */}
             <div className="relative">
               <Button 
@@ -1142,5 +1152,6 @@ export default function PoliceBoard() {
         </AnimatePresence>
       </main>
     </div>
+    </ProtectedRoute>
   )
 }

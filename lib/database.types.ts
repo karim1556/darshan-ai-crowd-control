@@ -210,6 +210,32 @@ export interface Database {
           created_at?: string
         }
       }
+      profiles: {
+        Row: {
+          id: string
+          email: string
+          full_name: string
+          role: 'pilgrim' | 'admin' | 'police' | 'medical'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          email: string
+          full_name: string
+          role?: 'pilgrim' | 'admin' | 'police' | 'medical'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string
+          full_name?: string
+          role?: 'pilgrim' | 'admin' | 'police' | 'medical'
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -233,3 +259,4 @@ export type SOSRequest = Database['public']['Tables']['sos_requests']['Row']
 export type SOSInsert = Database['public']['Tables']['sos_requests']['Insert']
 export type Ambulance = Database['public']['Tables']['ambulances']['Row']
 export type SecurityUnit = Database['public']['Tables']['security_units']['Row']
+export type Profile = Database['public']['Tables']['profiles']['Row']

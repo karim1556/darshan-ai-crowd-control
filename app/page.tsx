@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { useAuth } from "@/lib/auth-context"
 import { 
   Users, 
   ShieldAlert, 
@@ -17,9 +18,8 @@ import {
   ArrowRight,
   CheckCircle2,
   Zap,
-  RefreshCw
+  LogIn
 } from "lucide-react"
-import { toast } from "sonner"
 
 const features = [
   { icon: Calendar, text: "Smart Slot Booking" },
@@ -68,26 +68,8 @@ const roleCards = [
 ]
 
 export default function LandingPage() {
-  const [seeding, setSeeding] = useState(false)
-
-  const handleSeedData = async () => {
-    try {
-      setSeeding(true)
-      const res = await fetch("/api/demo/seed", { method: "POST" })
-      if (res.ok) {
-        toast.success("Demo data seeded successfully!", {
-          description: "Slots, bookings, zones, SOS requests, and units have been created."
-        })
-      } else {
-        toast.error("Failed to seed data")
-      }
-    } catch (error) {
-      toast.error("Error seeding data. Please try again.")
-    } finally {
-      setSeeding(false)
-    }
-  }
-
+  const router = useRouter()
+  const { user, signOut } = useAuth()
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       {/* Header */}
@@ -106,18 +88,25 @@ export default function LandingPage() {
               <p className="text-xs text-muted-foreground">Temple Crowd Management</p>
             </div>
           </div>
-          <Button 
-            onClick={handleSeedData} 
-            disabled={seeding}
-            className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25"
-          >
-            {seeding ? (
-              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Sparkles className="w-4 h-4 mr-2" />
-            )}
-            {seeding ? "Seeding..." : "Seed Demo Data"}
-          </Button>
+          {user ? (
+            <Button
+              onClick={async () => {
+                await signOut()
+                router.push('/')
+                router.refresh()
+              }}
+              className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25"
+            >
+              Sign Out
+            </Button>
+          ) : (
+            <Link href="/login">
+              <Button className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25">
+                <LogIn className="w-4 h-4 mr-2" />
+                Sign In
+              </Button>
+            </Link>
+          )}
         </nav>
       </header>
 

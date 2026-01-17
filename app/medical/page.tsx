@@ -25,11 +25,14 @@ import {
   Send,
   Route,
   Building2,
-  Cross
+  Cross,
+  LogOut
 } from "lucide-react"
 import Link from "next/link"
 import { format } from "date-fns"
 import { toast } from "sonner"
+import { ProtectedRoute } from "@/components/protected-route"
+import { useAuth } from "@/lib/auth-context"
 
 interface SOSCase {
   id: string
@@ -82,6 +85,7 @@ interface IncidentLog {
 }
 
 export default function MedicalDashboard() {
+  const { signOut } = useAuth()
   const [activeTab, setActiveTab] = useState("sos")
   const [sosCases, setSOSCases] = useState<SOSCase[]>([])
   const [ambulances, setAmbulances] = useState<AmbulanceUnit[]>([])
@@ -279,6 +283,7 @@ export default function MedicalDashboard() {
   const availableTeams = firstAidTeams.filter(t => t.status === 'available').length
 
   return (
+    <ProtectedRoute allowedRoles={['medical', 'admin']}>
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-red-500/5">
       {/* Header */}
       <header className="border-b border-border/50 bg-card/80 backdrop-blur-md sticky top-0 z-50">
@@ -309,9 +314,10 @@ export default function MedicalDashboard() {
             >
               <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
             </Button>
-            <Link href="/">
-              <Button variant="outline" size="sm">Exit</Button>
-            </Link>
+            <Button variant="outline" size="sm" onClick={signOut}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
           </div>
         </div>
       </header>
@@ -906,5 +912,6 @@ export default function MedicalDashboard() {
         </AnimatePresence>
       </main>
     </div>
+    </ProtectedRoute>
   )
 }
