@@ -31,6 +31,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
+import { useLanguage } from '@/lib/language-context'
 
 interface Track {
   id: string
@@ -116,6 +117,7 @@ const getCategoryEmoji = (category: string) => {
 }
 
 export default function MusicPage() {
+  const { t } = useLanguage()
   const [tracks] = useState<Track[]>(demoTracks)
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedDeity, setSelectedDeity] = useState('all')
@@ -249,9 +251,9 @@ export default function MusicPage() {
                   <Music2 className="w-6 h-6 text-white" />
                 </motion.div>
                 <div>
-                  <h1 className="font-bold text-xl">Holy Music</h1>
+                  <h1 className="font-bold text-xl">{t('music.title')}</h1>
                   <p className="text-xs text-purple-300 flex items-center gap-1">
-                    <Radio className="w-3 h-3" /> Divine sounds for your soul
+                    <Radio className="w-3 h-3" /> {t('music.tagline')}
                   </p>
                 </div>
               </div>
@@ -267,7 +269,7 @@ export default function MusicPage() {
               )}
             >
               <Heart className={cn("w-4 h-4", showFavorites && "fill-current")} />
-              <span className="hidden sm:inline">Favorites</span>
+              <span className="hidden sm:inline">{t('music.favorites')}</span>
               <Badge variant="secondary" className="bg-white/10 text-white text-xs">{favorites.length}</Badge>
             </Button>
           </div>
@@ -276,7 +278,7 @@ export default function MusicPage() {
           <div className="mt-4 relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-400" />
             <Input
-              placeholder="Search bhajans, mantras, artists..."
+              placeholder={t('music.search')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-12 h-12 rounded-2xl bg-white/5 border-white/10 text-white placeholder:text-purple-400 focus-visible:ring-purple-500"
@@ -332,7 +334,7 @@ export default function MusicPage() {
           <section>
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-amber-400" />
-              Featured Devotional
+              {t('music.featured')}
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               {featuredTracks.map((track, index) => (
@@ -411,7 +413,7 @@ export default function MusicPage() {
         <section>
           <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
             <ListMusic className="w-5 h-5" />
-            {showFavorites ? 'Your Favorites' : 'All Tracks'}
+            {showFavorites ? t('music.yourFavorites') : t('music.allTracks')}
             <Badge variant="secondary" className="bg-white/10 text-white ml-2">{filteredTracks.length}</Badge>
           </h2>
 
@@ -494,8 +496,8 @@ export default function MusicPage() {
             {filteredTracks.length === 0 && (
               <div className="text-center py-16">
                 <Music2 className="w-16 h-16 mx-auto text-purple-800 mb-4" />
-                <h3 className="font-medium text-lg mb-2">No tracks found</h3>
-                <p className="text-purple-400 text-sm">Try adjusting your filters</p>
+                <h3 className="font-medium text-lg mb-2">{t('music.noTracks')}</h3>
+                <p className="text-purple-400 text-sm">{t('music.adjustFilters')}</p>
               </div>
             )}
           </div>
@@ -643,7 +645,7 @@ export default function MusicPage() {
               <Button variant="ghost" size="icon" className="rounded-full text-white" onClick={() => setShowFullPlayer(false)}>
                 <ChevronDown className="w-6 h-6" />
               </Button>
-              <span className="text-sm text-purple-300">Now Playing</span>
+              <span className="text-sm text-purple-300">{t('music.nowPlaying')}</span>
               <Button variant="ghost" size="icon" className="rounded-full text-white">
                 <MoreHorizontal className="w-6 h-6" />
               </Button>

@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { AuthProvider } from "@/lib/auth-context"
+import { LanguageProvider } from "@/lib/language-context"
 import { NotificationProvider } from "@/components/notification-provider"
 import { ChatbotWrapper } from "@/components/chatbot-wrapper"
 import { Toaster } from "sonner"
@@ -40,11 +41,13 @@ export default function RootLayout({
       </head>
       <body className={`font-sans antialiased`}>
         <AuthProvider>
-          <NotificationProvider>
-            {children}
-            <ChatbotWrapper />
-            <Toaster position="top-right" richColors />
-          </NotificationProvider>
+          <LanguageProvider>
+            <NotificationProvider>
+              {children}
+              <ChatbotWrapper />
+              <Toaster position="top-right" richColors />
+            </NotificationProvider>
+          </LanguageProvider>
         </AuthProvider>
         <Analytics />
       </body>

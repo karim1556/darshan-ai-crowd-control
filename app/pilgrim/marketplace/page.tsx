@@ -31,6 +31,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth-context'
+import { useLanguage } from '@/lib/language-context'
 
 interface Product {
   id: string
@@ -158,6 +159,7 @@ const productEmojis: Record<string, string> = {
 
 export default function MarketplacePage() {
   const { user } = useAuth()
+  const { t } = useLanguage()
   const [vendors] = useState<Vendor[]>(demoVendors)
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -313,10 +315,10 @@ export default function MarketplacePage() {
                 </motion.div>
                 <div>
                   <h1 className="font-bold text-xl bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
-                    Seva Marketplace
+                    {t('marketplace.title')}
                   </h1>
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Bike className="w-3 h-3" /> Delivery to your queue position
+                    <Bike className="w-3 h-3" /> {t('marketplace.deliveryTag')}
                   </p>
                 </div>
               </div>
@@ -327,7 +329,7 @@ export default function MarketplacePage() {
           <div className="mt-4 relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
-              placeholder="Search flowers, prasad, puja items..."
+              placeholder={t('marketplace.search')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-12 h-12 rounded-2xl bg-white/80 dark:bg-gray-800/80 border-0 shadow-lg shadow-black/5 focus-visible:ring-pink-500"
@@ -378,8 +380,8 @@ export default function MarketplacePage() {
                     <Truck className="w-7 h-7" />
                   </motion.div>
                   <div>
-                    <h3 className="font-bold text-lg">Queue Delivery Service</h3>
-                    <p className="text-sm opacity-90">Order now & we'll find you in line!</p>
+                    <h3 className="font-bold text-lg">{t('marketplace.queueDelivery')}</h3>
+                    <p className="text-sm opacity-90">{t('marketplace.queueDeliveryDesc')}</p>
                   </div>
                 </div>
                 <div className="hidden sm:flex items-center gap-2 bg-white/20 backdrop-blur px-4 py-2 rounded-full">
@@ -416,7 +418,7 @@ export default function MarketplacePage() {
         <div className="space-y-5">
           <h2 className="font-bold text-lg flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-amber-500" />
-            Available Shops
+            {t('marketplace.availableShops')}
             <Badge variant="secondary" className="ml-2">{filteredVendors.length}</Badge>
           </h2>
 
@@ -599,7 +601,7 @@ export default function MarketplacePage() {
                 >
                   <ShoppingCart className="w-5 h-5" />
                 </motion.div>
-                <span className="font-bold text-lg">{cartCount} items</span>
+                <span className="font-bold text-lg">{cartCount} {t('common.items')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-xl">₹{cartTotal}</span>
@@ -632,7 +634,7 @@ export default function MarketplacePage() {
               <div className="flex items-center justify-between p-5 border-b bg-gradient-to-r from-pink-50 to-rose-50 dark:from-gray-800 dark:to-gray-800 shrink-0">
                 <h2 className="font-bold text-xl flex items-center gap-2">
                   <ShoppingCart className="w-6 h-6 text-pink-500" />
-                  Your Cart
+                  {t('marketplace.cart')}
                 </h2>
                 <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setShowCart(false)}>
                   <X className="w-5 h-5" />
@@ -649,8 +651,8 @@ export default function MarketplacePage() {
                     >
                       <Gift className="w-20 h-20 mx-auto text-pink-200 mb-4" />
                     </motion.div>
-                    <h3 className="font-bold text-lg mb-2">Your cart is empty</h3>
-                    <p className="text-muted-foreground text-sm">Add items to offer at the temple</p>
+                    <h3 className="font-bold text-lg mb-2">{t('marketplace.emptyCart')}</h3>
+                    <p className="text-muted-foreground text-sm">{t('marketplace.emptyCartDesc')}</p>
                   </div>
                 ) : (
                   cart.map(item => (
@@ -688,22 +690,22 @@ export default function MarketplacePage() {
               {cart.length > 0 && (
                 <div className="p-5 border-t bg-gradient-to-r from-pink-50 to-rose-50 dark:from-gray-800 dark:to-gray-800 space-y-3 shrink-0">
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="text-muted-foreground">{t('marketplace.subtotal')}</span>
                     <span className="font-medium">₹{cartTotal}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm text-green-600">
-                    <span className="flex items-center gap-1"><Bike className="w-4 h-4" /> Delivery</span>
-                    <span className="font-bold">FREE</span>
+                    <span className="flex items-center gap-1"><Bike className="w-4 h-4" /> {t('marketplace.delivery')}</span>
+                    <span className="font-bold">{t('marketplace.free')}</span>
                   </div>
                   <div className="flex justify-between items-center text-xl font-bold pt-2 border-t">
-                    <span>Total</span>
+                    <span>{t('common.total')}</span>
                     <span className="text-pink-600">₹{cartTotal}</span>
                   </div>
                   <Button 
                     className="w-full h-12 rounded-2xl bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-base shadow-lg shadow-pink-500/25"
                     onClick={() => setShowCheckout(true)}
                   >
-                    Proceed to Checkout
+                    {t('marketplace.checkout')}
                     <ChevronRight className="w-5 h-5 ml-2" />
                   </Button>
                 </div>
@@ -738,14 +740,14 @@ export default function MarketplacePage() {
                   >
                     <CheckCircle className="w-12 h-12 text-white" />
                   </motion.div>
-                  <h3 className="text-2xl font-bold mb-2">Order Placed! 🎉</h3>
-                  <p className="text-muted-foreground">Your items will be delivered to your queue position in ~15 minutes</p>
+                  <h3 className="text-2xl font-bold mb-2">{t('marketplace.orderPlaced')} 🎉</h3>
+                  <p className="text-muted-foreground">{t('marketplace.orderPlacedDesc')}</p>
                   <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/20 rounded-2xl">
                     <div className="flex items-center justify-center gap-2 text-green-600">
                       <motion.div animate={{ x: [0, 10, 0] }} transition={{ duration: 1, repeat: Infinity }}>
                         <Bike className="w-5 h-5" />
                       </motion.div>
-                      <span className="font-medium">Delivery partner on the way!</span>
+                      <span className="font-medium">{t('marketplace.deliveryOnWay')}</span>
                     </div>
                   </div>
                 </div>
@@ -754,27 +756,27 @@ export default function MarketplacePage() {
                   <div className="p-6 bg-gradient-to-r from-pink-500 to-rose-500 text-white">
                     <h3 className="text-xl font-bold flex items-center gap-2">
                       <Truck className="w-6 h-6" />
-                      Queue Delivery
+                      {t('marketplace.queueDelivery')}
                     </h3>
-                    <p className="text-sm opacity-90 mt-1">We'll find you in the line!</p>
+                    <p className="text-sm opacity-90 mt-1">{t('marketplace.queueDeliveryDesc')}</p>
                   </div>
                   <div className="p-6 space-y-5">
                     <div>
-                      <label className="text-sm font-medium mb-2 block">📍 Your Queue Location</label>
+                      <label className="text-sm font-medium mb-2 block">📍 {t('marketplace.yourLocation')}</label>
                       <Input
-                        placeholder="e.g., Near Gate B, Position ~150"
+                        placeholder={t('marketplace.locationPlaceholder')}
                         value={pilgrimLocation}
                         onChange={(e) => setPilgrimLocation(e.target.value)}
                         className="h-12 rounded-xl"
                       />
                       <p className="text-xs text-muted-foreground mt-1.5">
-                        Describe your position so the vendor can find you
+                        {t('marketplace.locationHint')}
                       </p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium mb-2 block">📱 Phone Number</label>
+                      <label className="text-sm font-medium mb-2 block">📱 {t('marketplace.phoneNumber')}</label>
                       <Input
-                        placeholder="Your phone number"
+                        placeholder={t('marketplace.phoneNumber')}
                         value={pilgrimPhone}
                         onChange={(e) => setPilgrimPhone(e.target.value)}
                         className="h-12 rounded-xl"
@@ -782,21 +784,21 @@ export default function MarketplacePage() {
                     </div>
                     <div className="bg-pink-50 dark:bg-pink-900/20 rounded-2xl p-4 space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span>Subtotal ({cartCount} items)</span>
+                        <span>{t('marketplace.subtotal')} ({cartCount} {t('common.items')})</span>
                         <span>₹{cartTotal}</span>
                       </div>
                       <div className="flex justify-between text-sm text-green-600">
-                        <span>Delivery</span>
-                        <span>FREE</span>
+                        <span>{t('marketplace.delivery')}</span>
+                        <span>{t('marketplace.free')}</span>
                       </div>
                       <div className="flex justify-between font-bold text-lg pt-2 border-t border-pink-200 dark:border-pink-800">
-                        <span>Total</span>
+                        <span>{t('common.total')}</span>
                         <span className="text-pink-600">₹{cartTotal}</span>
                       </div>
                     </div>
                     <div className="flex gap-3">
                       <Button variant="outline" className="flex-1 h-12 rounded-xl" onClick={() => setShowCheckout(false)}>
-                        Cancel
+                        {t('common.cancel')}
                       </Button>
                       <Button
                         className="flex-1 h-12 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600"
@@ -806,7 +808,7 @@ export default function MarketplacePage() {
                         {isOrdering ? (
                           <Loader2 className="w-5 h-5 animate-spin" />
                         ) : (
-                          <>Place Order <ChevronRight className="w-5 h-5 ml-1" /></>
+                          <>{t('marketplace.placeOrder')} <ChevronRight className="w-5 h-5 ml-1" /></>
                         )}
                       </Button>
                     </div>

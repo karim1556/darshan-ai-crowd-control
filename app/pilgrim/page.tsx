@@ -31,6 +31,8 @@ import Link from "next/link"
 import { format } from "date-fns"
 import { toast } from "sonner"
 import { useAuth } from "@/lib/auth-context"
+import { useLanguage } from "@/lib/language-context"
+import { LanguageSelector } from "@/components/language-selector"
 
 interface Booking {
   id: string
@@ -66,6 +68,7 @@ interface Notification {
 
 export default function PilgrimApp() {
   const { user } = useAuth()
+  const { t } = useLanguage()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [zones, setZones] = useState<ZoneStats[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -250,9 +253,9 @@ export default function PilgrimApp() {
   }
 
   const tabs = [
-    { id: 'bookings', label: 'My Bookings', icon: Ticket },
-    { id: 'crowd', label: 'Crowd Status', icon: Activity },
-    { id: 'guide', label: 'AI Guide', icon: Sparkles }
+    { id: 'bookings', label: t('bookings.title'), icon: Ticket },
+    { id: 'crowd', label: t('crowd.title'), icon: Activity },
+    { id: 'guide', label: t('guide.title'), icon: Sparkles }
   ]
 
   return (
@@ -266,12 +269,13 @@ export default function PilgrimApp() {
                 <img src="/logo.png" alt="DARSHAN.AI" className="w-8 h-8 object-contain" />
               </div>
               <div>
-                <span className="font-bold text-lg text-primary">DARSHAN.AI</span>
-                <p className="text-xs text-muted-foreground">Pilgrim Portal</p>
+                <span className="font-bold text-lg text-primary">{t('app.name')}</span>
+                <p className="text-xs text-muted-foreground">{t('app.tagline')}</p>
               </div>
             </div>
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <LanguageSelector />
             <Button 
               variant="ghost" 
               size="icon"
@@ -294,7 +298,7 @@ export default function PilgrimApp() {
               <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
             </Button>
             <Link href="/">
-              <Button variant="outline" size="sm">Home</Button>
+              <Button variant="outline" size="sm">{t('common.home')}</Button>
             </Link>
           </div>
         </div>
@@ -313,18 +317,17 @@ export default function PilgrimApp() {
               <div className="flex justify-between items-center mb-3">
                 <h3 className="font-bold flex items-center gap-2">
                   <Bell className="w-4 h-4" />
-                  Notifications
-                </h3>
+                  {t('nav.notifications')}</h3>
                 <Button 
                   variant="ghost" 
                   size="sm"
                   onClick={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
                 >
-                  Mark all read
+                  {t('nav.markAllRead')}
                 </Button>
               </div>
               {notifications.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No notifications</p>
+                <p className="text-sm text-muted-foreground text-center py-4">{t('nav.noNotifications')}</p>
               ) : (
                 <div className="space-y-2">
                   {notifications.map((notif) => (
@@ -360,7 +363,7 @@ export default function PilgrimApp() {
           <Link href="/pilgrim/sos">
             <Button className="w-full py-6 text-xl font-bold bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white shadow-lg shadow-red-500/25 transition-all">
               <Phone className="mr-3 w-6 h-6" />
-              EMERGENCY SOS
+              {t('emergency.sos')}
             </Button>
           </Link>
         </motion.div>
@@ -373,13 +376,13 @@ export default function PilgrimApp() {
           className="mb-4"
         >
           <h2 className="font-bold text-lg mb-2 flex items-center justify-between">
-            <span>My Orders</span>
-            <span className="text-sm text-muted-foreground">Recent deliveries</span>
+            <span>{t('orders.title')}</span>
+            <span className="text-sm text-muted-foreground">{t('orders.recentDeliveries')}</span>
           </h2>
 
           {orders.length === 0 ? (
             <Card className="p-4">
-              <p className="text-sm text-muted-foreground">No recent orders. Order flowers or prasad and track delivery here.</p>
+              <p className="text-sm text-muted-foreground">{t('orders.noOrders')}</p>
             </Card>
           ) : (
             <div className="space-y-3">
@@ -395,7 +398,7 @@ export default function PilgrimApp() {
                       order.status === 'delivered' ? 'bg-green-100 text-green-800' : order.status === 'out-for-delivery' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'
                     }`}>{order.status}</span>
                     <Link href={`/pilgrim/orders/${order.order_id}`}>
-                      <Button size="sm" className="bg-primary">Track</Button>
+                      <Button size="sm" className="bg-primary">{t('common.track')}</Button>
                     </Link>
                   </div>
                 </Card>
@@ -413,17 +416,17 @@ export default function PilgrimApp() {
         >
           <Card className="p-3 text-center">
             <p className="text-2xl font-bold text-primary">{upcomingBookings.length}</p>
-            <p className="text-xs text-muted-foreground">Upcoming</p>
+            <p className="text-xs text-muted-foreground">{t('stats.upcoming')}</p>
           </Card>
           <Card className="p-3 text-center">
             <p className="text-2xl font-bold text-green-600">{checkedInBookings.length}</p>
-            <p className="text-xs text-muted-foreground">Checked In</p>
+            <p className="text-xs text-muted-foreground">{t('stats.checkedIn')}</p>
           </Card>
           <Card className="p-3 text-center">
             <p className={`text-2xl font-bold ${highCrowdZones.length > 0 ? 'text-orange-600' : 'text-green-600'}`}>
-              {highCrowdZones.length > 0 ? 'High' : 'Low'}
+              {highCrowdZones.length > 0 ? t('stats.high') : t('stats.low')}
             </p>
-            <p className="text-xs text-muted-foreground">Crowd</p>
+            <p className="text-xs text-muted-foreground">{t('stats.crowd')}</p>
           </Card>
         </motion.div>
 
@@ -442,10 +445,10 @@ export default function PilgrimApp() {
                   </div>
                   <div>
                     <h3 className="font-bold flex items-center gap-2">
-                      Darshan AI Assistant
-                      <span className="px-2 py-0.5 text-xs bg-white/20 rounded-full">NEW</span>
+                      {t('ai.title')}
+                      <span className="px-2 py-0.5 text-xs bg-white/20 rounded-full">{t('ai.new')}</span>
                     </h3>
-                    <p className="text-sm text-white/80">Ask about crowd, slots, gates & more</p>
+                    <p className="text-sm text-white/80">{t('ai.description')}</p>
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5" />
@@ -468,10 +471,10 @@ export default function PilgrimApp() {
                   <Flower2 className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm">Seva Marketplace</h3>
-                  <p className="text-xs text-white/80">Flowers, Prasad & Puja Items</p>
+                  <h3 className="font-bold text-sm">{t('marketplace.title')}</h3>
+                  <p className="text-xs text-white/80">{t('marketplace.description')}</p>
                 </div>
-                <span className="px-2 py-0.5 text-xs bg-white/20 rounded-full">Delivery to Queue!</span>
+                <span className="px-2 py-0.5 text-xs bg-white/20 rounded-full">{t('marketplace.deliveryTag')}</span>
               </div>
             </Card>
           </Link>
@@ -482,10 +485,10 @@ export default function PilgrimApp() {
                   <Music2 className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm">Holy Music</h3>
-                  <p className="text-xs text-white/80">Bhajans, Mantras & Aarti</p>
+                  <h3 className="font-bold text-sm">{t('music.title')}</h3>
+                  <p className="text-xs text-white/80">{t('music.description')}</p>
                 </div>
-                <span className="px-2 py-0.5 text-xs bg-white/20 rounded-full">Listen While Waiting</span>
+                <span className="px-2 py-0.5 text-xs bg-white/20 rounded-full">{t('music.listenTag')}</span>
               </div>
             </Card>
           </Link>
@@ -505,8 +508,8 @@ export default function PilgrimApp() {
                     <Calendar className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-bold">Book New Darshan Slot</h3>
-                    <p className="text-sm text-muted-foreground">Plan your temple visit</p>
+                    <h3 className="font-bold">{t('bookings.bookNew')}</h3>
+                    <p className="text-sm text-muted-foreground">{t('bookings.planVisit')}</p>
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5 text-primary" />
@@ -550,12 +553,12 @@ export default function PilgrimApp() {
               {bookings.length === 0 ? (
                 <Card className="p-8 text-center">
                   <Ticket className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
-                  <h3 className="text-xl font-bold mb-2">No Bookings Yet</h3>
-                  <p className="text-muted-foreground mb-4">Book a darshan slot to get started</p>
+                  <h3 className="text-xl font-bold mb-2">{t('bookings.noBookings')}</h3>
+                  <p className="text-muted-foreground mb-4">{t('bookings.noBookingsDesc')}</p>
                   <Link href="/pilgrim/book">
                     <Button className="bg-primary hover:bg-primary/90">
                       <Calendar className="w-4 h-4 mr-2" />
-                      Book Now
+                      {t('bookings.bookNow')}
                     </Button>
                   </Link>
                 </Card>
@@ -606,7 +609,7 @@ export default function PilgrimApp() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Users className="w-4 h-4 text-primary" />
-                          <span>{booking.members_count} member(s)</span>
+                          <span>{booking.members_count} {t('bookings.members')}</span>
                         </div>
                       </div>
 
@@ -614,7 +617,7 @@ export default function PilgrimApp() {
                         <Link href={`/pilgrim/ticket/${booking.booking_id}`}>
                           <Button className="w-full bg-primary hover:bg-primary/90">
                             <QrCode className="w-4 h-4 mr-2" />
-                            View QR Ticket
+                            {t('bookings.viewQR')}
                           </Button>
                         </Link>
                       )}
@@ -639,9 +642,9 @@ export default function PilgrimApp() {
                   <div className="flex gap-3 items-start">
                     <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="font-semibold text-amber-900 dark:text-amber-400">High Crowd Alert</p>
+                      <p className="font-semibold text-amber-900 dark:text-amber-400">{t('crowd.alert')}</p>
                       <p className="text-sm text-amber-800 dark:text-amber-500">
-                        {highCrowdZones.map(z => z.zone_name).join(', ')} {highCrowdZones.length === 1 ? 'is' : 'are'} at high capacity
+                        {highCrowdZones.map(z => z.zone_name).join(', ')} {t('crowd.atHighCapacity')}
                       </p>
                     </div>
                   </div>
@@ -669,7 +672,7 @@ export default function PilgrimApp() {
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Capacity</span>
+                          <span className="text-muted-foreground">{t('crowd.capacity')}</span>
                           <span className="font-semibold">{percentage}%</span>
                         </div>
                         <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
@@ -685,7 +688,7 @@ export default function PilgrimApp() {
                           />
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          {zone.current_count.toLocaleString()} / {zone.capacity.toLocaleString()} people
+                          {zone.current_count.toLocaleString()} / {zone.capacity.toLocaleString()} {t('crowd.people')}
                         </p>
                       </div>
                     </Card>
@@ -696,7 +699,7 @@ export default function PilgrimApp() {
               {zones.length === 0 && (
                 <Card className="p-8 text-center">
                   <Activity className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
-                  <p className="text-muted-foreground">No crowd data available</p>
+                  <p className="text-muted-foreground">{t('crowd.noData')}</p>
                 </Card>
               )}
             </motion.div>
@@ -717,8 +720,8 @@ export default function PilgrimApp() {
                     <Sparkles className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg">AI Darshan Guide</h3>
-                    <p className="text-sm text-muted-foreground">Smart recommendations for your visit</p>
+                    <h3 className="font-bold text-lg">{t('guide.aiGuide')}</h3>
+                    <p className="text-sm text-muted-foreground">{t('guide.smartRecommendations')}</p>
                   </div>
                 </div>
 
@@ -726,17 +729,17 @@ export default function PilgrimApp() {
                   <div className="bg-card rounded-xl p-4 border border-border">
                     <p className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
                       <Navigation className="w-4 h-4" />
-                      Recommended Route
+                      {t('guide.recommendedRoute')}
                     </p>
                     <ol className="space-y-2 text-sm">
                       {zones.filter(z => z.crowd_level === 'Low' || z.crowd_level === 'Medium').slice(0, 3).map((zone, i) => (
                         <li key={zone.id} className="flex gap-2">
                           <span className="font-bold text-primary min-w-[20px]">{i + 1}.</span>
-                          <span>Visit <strong>{zone.zone_name}</strong> - currently at {zone.crowd_level.toLowerCase()} capacity</span>
+                          <span>{t('guide.visit')} <strong>{zone.zone_name}</strong> - {t('guide.currentlyAt')} {zone.crowd_level.toLowerCase()}</span>
                         </li>
                       ))}
                       {zones.length === 0 && (
-                        <li className="text-muted-foreground">Loading route recommendations...</li>
+                        <li className="text-muted-foreground">{t('guide.loadingRoute')}</li>
                       )}
                     </ol>
                   </div>
@@ -744,20 +747,20 @@ export default function PilgrimApp() {
                   <div className="bg-card rounded-xl p-4 border border-border">
                     <p className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
                       <Clock className="w-4 h-4" />
-                      Best Times to Visit
+                      {t('guide.bestTimes')}
                     </p>
                     <ul className="space-y-2 text-sm text-muted-foreground">
                       <li className="flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4 text-green-500" />
-                        Early morning (6 AM - 8 AM) - Low crowd
+                        {t('guide.earlyMorning')}
                       </li>
                       <li className="flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4 text-green-500" />
-                        Evening (4 PM - 6 PM) - Moderate crowd
+                        {t('guide.evening')}
                       </li>
                       <li className="flex items-center gap-2">
                         <XCircle className="w-4 h-4 text-red-500" />
-                        Peak hours (10 AM - 2 PM) - Avoid if possible
+                        {t('guide.peakHours')}
                       </li>
                     </ul>
                   </div>
@@ -765,13 +768,13 @@ export default function PilgrimApp() {
                   <div className="bg-card rounded-xl p-4 border border-border">
                     <p className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4" />
-                      Safety Tips
+                      {t('guide.safetyTips')}
                     </p>
                     <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li>• Keep your phone charged - SOS available 24/7</li>
-                      <li>• Stay hydrated - water stations at all zones</li>
-                      <li>• Keep your QR ticket ready for quick check-in</li>
-                      <li>• Emergency helpline displayed at all checkpoints</li>
+                      <li>• {t('guide.tip1')}</li>
+                      <li>• {t('guide.tip2')}</li>
+                      <li>• {t('guide.tip3')}</li>
+                      <li>• {t('guide.tip4')}</li>
                     </ul>
                   </div>
                 </div>

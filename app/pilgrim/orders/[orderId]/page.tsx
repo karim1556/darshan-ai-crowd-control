@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { Bike, Truck, CheckCircle2, Clock, ArrowLeft } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { useLanguage } from '@/lib/language-context'
 
 export default function OrderTrackPage() {
+  const { t } = useLanguage()
   const params = useParams()
   const router = useRouter()
   const { orderId } = params || {}
@@ -51,7 +53,7 @@ export default function OrderTrackPage() {
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-lg font-bold">Track Order</h1>
+          <h1 className="text-lg font-bold">{t('orders.trackOrder')}</h1>
         </div>
 
         <Card className="p-4 mb-4">
@@ -60,13 +62,13 @@ export default function OrderTrackPage() {
           <p className="text-sm text-muted-foreground">{order?.pilgrim_location}</p>
           <div className="flex items-center gap-3 mt-3 text-sm">
             <Bike className="w-4 h-4 text-amber-500" />
-            <span className="font-medium">Status: </span>
-            <span className="text-sm">{order?.status || 'pending'}</span>
+            <span className="font-medium">{t('common.status')}: </span>
+            <span className="text-sm">{order?.status || t('common.pending').toLowerCase()}</span>
           </div>
         </Card>
 
         <Card className="p-4 mb-4">
-          <h3 className="font-semibold mb-2">Items</h3>
+          <h3 className="font-semibold mb-2">{t('orders.orderItems')}</h3>
           <div className="space-y-2">
             {order?.items?.map((it: any, i: number) => (
               <div key={i} className="flex justify-between text-sm">
@@ -80,21 +82,21 @@ export default function OrderTrackPage() {
             {!order?.items && <p className="text-sm text-muted-foreground">No items found</p>}
           </div>
           <div className="flex justify-between items-center mt-4">
-            <div className="text-sm text-muted-foreground">Placed: {order?.created_at ? new Date(order.created_at).toLocaleString() : '-'}</div>
-            <div className="font-bold">Total: ₹{order?.total_amount}</div>
+            <div className="text-sm text-muted-foreground">{t('orders.placed')}: {order?.created_at ? new Date(order.created_at).toLocaleString() : '-'}</div>
+            <div className="font-bold">{t('common.total')}: ₹{order?.total_amount}</div>
           </div>
         </Card>
 
         <Card className="p-4 mb-4">
-          <h3 className="font-semibold mb-3">Live Tracking</h3>
+          <h3 className="font-semibold mb-3">{t('orders.liveTracking')}</h3>
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-amber-50 rounded-full flex items-center justify-center">
                 <Truck className="w-5 h-5 text-amber-600" />
               </div>
               <div>
-                <div className="font-medium">Out for delivery</div>
-                <div className="text-sm text-muted-foreground">Delivery partner assigned. Estimated {order?.estimated_delivery || 15} minutes</div>
+                <div className="font-medium">{t('orders.outForDelivery')}</div>
+                <div className="text-sm text-muted-foreground">{t('orders.deliveryAssigned')} {order?.estimated_delivery || 15} {t('orders.minutes')}</div>
               </div>
             </div>
 
@@ -103,15 +105,15 @@ export default function OrderTrackPage() {
             </motion.div>
 
             <div className="flex gap-2">
-              <Button onClick={fetchOrder}>Refresh</Button>
+              <Button onClick={fetchOrder}>{t('common.refresh')}</Button>
               <Link href="/pilgrim/marketplace">
-                <Button variant="ghost">Back to Marketplace</Button>
+                <Button variant="ghost">{t('orders.backToMarketplace')}</Button>
               </Link>
             </div>
           </div>
         </Card>
 
-        <div className="text-center text-sm text-muted-foreground">If the order status doesn't update, contact the vendor directly.</div>
+        <div className="text-center text-sm text-muted-foreground">{t('orders.contactVendor')}</div>
       </div>
     </div>
   )
