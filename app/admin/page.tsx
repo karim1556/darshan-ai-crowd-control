@@ -35,6 +35,7 @@ import { format, addDays, subDays } from "date-fns"
 import { toast } from "sonner"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/lib/auth-context"
+import { NotificationBell } from "@/components/notification-bell"
 
 interface ZoneStats {
   id: string
@@ -277,6 +278,7 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <NotificationBell />
             <Button 
               variant="ghost" 
               size="icon"

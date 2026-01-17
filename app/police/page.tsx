@@ -35,6 +35,7 @@ import { format } from "date-fns"
 import { toast } from "sonner"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/lib/auth-context"
+import { NotificationBell } from "@/components/notification-bell"
 
 interface SOSIncident {
   id: string
@@ -559,6 +560,7 @@ export default function PoliceBoard() {
               </AnimatePresence>
             </div>
             
+            <NotificationBell />
             <Button 
               variant="ghost" 
               size="icon"
