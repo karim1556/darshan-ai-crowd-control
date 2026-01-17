@@ -69,7 +69,7 @@ const roleCards = [
 
 export default function LandingPage() {
   const router = useRouter()
-  const { user, signOut } = useAuth()
+  const { user, signOut, loading } = useAuth()
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       {/* Header */}
@@ -88,12 +88,21 @@ export default function LandingPage() {
               <p className="text-xs text-muted-foreground">Temple Crowd Management</p>
             </div>
           </div>
-          {user ? (
+          {loading ? (
+            <Button className="bg-primary/60 shadow-lg shadow-primary/25 opacity-70 cursor-wait" disabled>
+              Loading...
+            </Button>
+          ) : user ? (
             <Button
               onClick={async () => {
-                await signOut()
-                router.push('/')
-                router.refresh()
+                try {
+                  await signOut()
+                } catch (e) {
+                  console.error('Sign out failed', e)
+                } finally {
+                  // Force full reload to ensure cookies/localStorage cleared
+                  window.location.href = '/'
+                }
               }}
               className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25"
             >

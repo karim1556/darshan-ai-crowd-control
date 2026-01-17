@@ -191,6 +191,11 @@ export default function AdminDashboard() {
     toast.success('Dashboard refreshed')
   }
 
+  // Seed functionality removed — provide a safe no-op with user feedback
+  const handleSeedData = async () => {
+    toast.info('Seed demo data is disabled in this deployment.')
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">

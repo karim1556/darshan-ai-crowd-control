@@ -176,11 +176,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
-    syncSessionToCookies(null) // Clear auth cookies
-    setUser(null)
-    setRole(null)
-    setSession(null)
+    try {
+      console.log('[Auth] signOut: initiating')
+      const { error } = await supabase.auth.signOut()
+      if (error) console.warn('[Auth] signOut error from supabase:', error)
+    } catch (e) {
+      console.error('[Auth] signOut unexpected error:', e)
+    } finally {
+      // Ensure local state and cookies are cleared even if supabase call fails
+      syncSessionToCookies(null) // Clear auth cookies
+      try {
+        // Also clear Supabase client session in case
+        // @ts-ignore
+        if (supabase?.auth?.removeAllSessions) supabase.auth.removeAllSessions()
+      } catch (e) {
+        // ignore
+      }
+      setUser(null)
+      setRole(null)
+      setSession(null)
+      console.log('[Auth] signOut: completed')
+    }
   }
 
   const hasAccess = (allowedRoles: UserRole[]) => {
