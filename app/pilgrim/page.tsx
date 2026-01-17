@@ -69,6 +69,7 @@ export default function PilgrimApp() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [zones, setZones] = useState<ZoneStats[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
+  const [orders, setOrders] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState("bookings")
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -104,6 +105,20 @@ export default function PilgrimApp() {
       // If no user email, bookingsData stays empty (new/logged-out users see empty dashboard)
       
       setBookings(bookingsData)
+
+      // Load pilgrim orders if we've stored a phone locally
+      try {
+        const storedPhone = typeof window !== 'undefined' ? localStorage.getItem('pilgrim_phone') : null
+        if (storedPhone) {
+          const ordersRes = await fetch(`/api/vendors/orders?phone=${encodeURIComponent(storedPhone)}`)
+          if (ordersRes.ok) {
+            const odata = await ordersRes.json()
+            setOrders(Array.isArray(odata.orders) ? odata.orders : [])
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching orders:', err)
+      }
 
       if (zonesRes.ok) {
         const data = await zonesRes.json()
@@ -348,6 +363,45 @@ export default function PilgrimApp() {
               EMERGENCY SOS
             </Button>
           </Link>
+        </motion.div>
+
+        {/* My Orders (from Seva Marketplace) */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.115 }}
+          className="mb-4"
+        >
+          <h2 className="font-bold text-lg mb-2 flex items-center justify-between">
+            <span>My Orders</span>
+            <span className="text-sm text-muted-foreground">Recent deliveries</span>
+          </h2>
+
+          {orders.length === 0 ? (
+            <Card className="p-4">
+              <p className="text-sm text-muted-foreground">No recent orders. Order flowers or prasad and track delivery here.</p>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {orders.map((order, i) => (
+                <Card key={order.order_id || i} className="p-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground">{order.order_id}</p>
+                    <p className="font-semibold">{order.vendor?.shop_name || order.vendor?.name || 'Vendor'}</p>
+                    <p className="text-sm text-muted-foreground">₹{order.total_amount} • {new Date(order.created_at).toLocaleString()}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                      order.status === 'delivered' ? 'bg-green-100 text-green-800' : order.status === 'out-for-delivery' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'
+                    }`}>{order.status}</span>
+                    <Link href={`/pilgrim/orders/${order.order_id}`}>
+                      <Button size="sm" className="bg-primary">Track</Button>
+                    </Link>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
         </motion.div>
 
         {/* Quick Stats */}

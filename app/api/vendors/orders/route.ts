@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const vendorId = searchParams.get('vendorId')
     const pilgrimPhone = searchParams.get('phone')
+    const orderId = searchParams.get('orderId')
 
     let query = (supabase as any)
       .from('vendor_orders')
@@ -22,6 +23,10 @@ export async function GET(request: NextRequest) {
         vendor:vendors(name, shop_name, phone, location)
       `)
       .order('created_at', { ascending: false })
+
+    if (orderId) {
+      query = query.eq('order_id', orderId)
+    }
 
     if (vendorId) {
       query = query.eq('vendor_id', vendorId)

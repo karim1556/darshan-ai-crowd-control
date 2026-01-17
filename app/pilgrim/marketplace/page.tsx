@@ -226,15 +226,62 @@ export default function MarketplacePage() {
   const placeOrder = async () => {
     if (!pilgrimLocation || !pilgrimPhone) return
     setIsOrdering(true)
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    setIsOrdering(false)
-    setOrderSuccess(true)
-    setCart([])
-    setTimeout(() => {
-      setOrderSuccess(false)
-      setShowCheckout(false)
-      setShowCart(false)
-    }, 3000)
+
+    try {
+      // Group cart items by vendor
+      const byVendor: Record<string, CartItem[]> = {}
+      cart.forEach(item => {
+        const vid = item.vendor.id
+        if (!byVendor[vid]) byVendor[vid] = []
+        byVendor[vid].push(item)
+      })
+
+      const createdOrders: string[] = []
+
+      for (const vendorId of Object.keys(byVendor)) {
+        const items = byVendor[vendorId].map(i => ({ product_id: i.product.id, name: i.product.name, quantity: i.quantity, price: i.product.price }))
+        const totalAmount = items.reduce((s, it) => s + it.price * it.quantity, 0)
+
+        const res = await fetch('/api/vendors/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            vendorId,
+            pilgrimName: user?.full_name || 'Guest',
+            pilgrimPhone,
+            pilgrimLocation,
+            bookingId: null,
+            items,
+            totalAmount,
+            deliveryNotes: ''
+          })
+        })
+
+        const data = await res.json()
+        if (res.ok && data?.order) {
+          createdOrders.push(data.order.order_id || data.order.orderId || '')
+        }
+      }
+
+      // Persist pilgrim phone so dashboard can fetch orders
+      try { localStorage.setItem('pilgrim_phone', pilgrimPhone) } catch (e) { }
+
+      setOrderSuccess(true)
+      setCart([])
+
+      // Optionally show the placed order ids in console
+      console.info('Created orders:', createdOrders)
+
+      setTimeout(() => {
+        setOrderSuccess(false)
+        setShowCheckout(false)
+        setShowCart(false)
+      }, 3000)
+    } catch (err) {
+      console.error('Place order failed', err)
+    } finally {
+      setIsOrdering(false)
+    }
   }
 
   return (
