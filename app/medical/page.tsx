@@ -45,6 +45,8 @@ interface SOSCase {
   reporter_name: string
   reporter_phone: string
   assigned_unit_id?: string
+  assigned_resource_type?: 'ambulance' | 'booth' | 'team'
+  assigned_resource_name?: string
   eta?: number
   dispatched_at?: string
   resolved_at?: string
@@ -153,9 +155,22 @@ export default function MedicalDashboard() {
     toast.success('Dashboard refreshed')
   }
 
-  const handleDispatch = async (sosId: string, ambulanceId: string) => {
+  const handleDispatch = async (sosId: string, resourceId: string, resourceType: 'ambulance' | 'booth' | 'team') => {
     try {
       setDispatchingId(sosId)
+
+      // Get resource name for display
+      let resourceName = ''
+      if (resourceType === 'ambulance') {
+        const amb = ambulances.find(a => a.id === resourceId)
+        resourceName = amb?.unit_name || ''
+      } else if (resourceType === 'booth') {
+        const booth = medicalBooths.find(b => b.id === resourceId)
+        resourceName = booth?.name || ''
+      } else if (resourceType === 'team') {
+        const team = firstAidTeams.find(t => t.id === resourceId)
+        resourceName = team?.team_name || ''
+      }
 
       const res = await fetch("/api/sos", {
         method: "PUT",
@@ -163,21 +178,47 @@ export default function MedicalDashboard() {
         body: JSON.stringify({
           id: sosId,
           action: 'assign',
-          unitId: ambulanceId,
-          unitType: 'ambulance'
+          unitId: resourceId,
+          unitType: resourceType,
+          resourceName: resourceName
         }),
       })
 
       if (res.ok) {
-        toast.success('Ambulance dispatched!')
+        const resourceTypeLabel = resourceType === 'ambulance' ? 'Ambulance' : 
+                            resourceType === 'booth' ? 'Medical Booth' : 'First Aid Team'
+        toast.success(`${resourceTypeLabel} assigned!`)
         // Log the dispatch
-        addIncidentLog(sosId, 'Ambulance Dispatched', `Assigned ambulance ${ambulanceId}`)
+        addIncidentLog(sosId, `${resourceTypeLabel} Assigned`, `Assigned ${resourceName}`)
+        
+        // Update local state immediately
+        setSOSCases(prev => prev.map(c => 
+          c.id === sosId 
+            ? { ...c, status: 'assigned', assigned_resource_type: resourceType, assigned_resource_name: resourceName }
+            : c
+        ))
+        
+        // Update resource status
+        if (resourceType === 'ambulance') {
+          setAmbulances(prev => prev.map(a => 
+            a.id === resourceId ? { ...a, status: 'deployed' } : a
+          ))
+        } else if (resourceType === 'booth') {
+          setMedicalBooths(prev => prev.map(b => 
+            b.id === resourceId ? { ...b, status: 'busy' } : b
+          ))
+        } else if (resourceType === 'team') {
+          setFirstAidTeams(prev => prev.map(t => 
+            t.id === resourceId ? { ...t, status: 'responding' } : t
+          ))
+        }
+        
         await fetchData()
       } else {
-        toast.error('Failed to dispatch')
+        toast.error('Failed to assign resource')
       }
     } catch (err) {
-      toast.error('Dispatch error')
+      toast.error('Assignment error')
     } finally {
       setDispatchingId(null)
     }
@@ -185,6 +226,9 @@ export default function MedicalDashboard() {
 
   const handleResolve = async (sosId: string) => {
     try {
+      // Find the SOS case to get assigned resource info
+      const sosCase = sosCases.find(s => s.id === sosId)
+      
       const res = await fetch("/api/sos", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -198,6 +242,24 @@ export default function MedicalDashboard() {
         toast.success('Case resolved')
         // Log the resolution
         addIncidentLog(sosId, 'Case Resolved', 'Emergency resolved successfully')
+        
+        // Free up the assigned resource
+        if (sosCase?.assigned_resource_type && sosCase.assigned_unit_id) {
+          if (sosCase.assigned_resource_type === 'ambulance') {
+            setAmbulances(prev => prev.map(a => 
+              a.id === sosCase.assigned_unit_id ? { ...a, status: 'available' } : a
+            ))
+          } else if (sosCase.assigned_resource_type === 'booth') {
+            setMedicalBooths(prev => prev.map(b => 
+              b.id === sosCase.assigned_unit_id ? { ...b, status: 'open' } : b
+            ))
+          } else if (sosCase.assigned_resource_type === 'team') {
+            setFirstAidTeams(prev => prev.map(t => 
+              t.id === sosCase.assigned_unit_id ? { ...t, status: 'available' } : t
+            ))
+          }
+        }
+        
         await fetchData()
       }
     } catch (err) {
@@ -492,23 +554,81 @@ export default function MedicalDashboard() {
                                 </span>
                               </div>
                               
-                              <p className="text-sm font-medium">Dispatch Ambulance:</p>
-                              <div className="flex flex-wrap gap-2">
-                                {ambulances.filter(a => a.status === 'available').map((amb) => (
-                                  <Button
-                                    key={amb.id}
-                                    onClick={() => handleDispatch(sos.id, amb.id)}
-                                    disabled={dispatchingId === sos.id}
-                                    size="sm"
-                                    className="bg-red-600 hover:bg-red-700"
-                                  >
-                                    <Zap className="w-3 h-3 mr-1" />
-                                    {amb.unit_name} ({amb.paramedic_count} paramedics)
-                                  </Button>
-                                ))}
-                                {ambulances.filter(a => a.status === 'available').length === 0 && (
-                                  <p className="text-sm text-muted-foreground">No available ambulances</p>
-                                )}
+                              {/* Ambulances */}
+                              <div>
+                                <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                                  <Ambulance className="w-4 h-4" />
+                                  Dispatch Ambulance:
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                  {ambulances.filter(a => a.status === 'available').map((amb) => (
+                                    <Button
+                                      key={amb.id}
+                                      onClick={() => handleDispatch(sos.id, amb.id, 'ambulance')}
+                                      disabled={dispatchingId === sos.id}
+                                      size="sm"
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      <Zap className="w-3 h-3 mr-1" />
+                                      {amb.unit_name} ({amb.paramedic_count} paramedics)
+                                    </Button>
+                                  ))}
+                                  {ambulances.filter(a => a.status === 'available').length === 0 && (
+                                    <p className="text-sm text-muted-foreground">No available ambulances</p>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Medical Booths */}
+                              <div>
+                                <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                                  <Building2 className="w-4 h-4" />
+                                  Assign to Medical Booth:
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                  {medicalBooths.filter(b => b.status === 'open').map((booth) => (
+                                    <Button
+                                      key={booth.id}
+                                      onClick={() => handleDispatch(sos.id, booth.id, 'booth')}
+                                      disabled={dispatchingId === sos.id}
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-green-500 text-green-600 hover:bg-green-50"
+                                    >
+                                      <Building2 className="w-3 h-3 mr-1" />
+                                      {booth.name} ({booth.staff_count} staff)
+                                    </Button>
+                                  ))}
+                                  {medicalBooths.filter(b => b.status === 'open').length === 0 && (
+                                    <p className="text-sm text-muted-foreground">No available booths</p>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* First Aid Teams */}
+                              <div>
+                                <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                                  <Users className="w-4 h-4" />
+                                  Send First Aid Team:
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                  {firstAidTeams.filter(t => t.status === 'available').map((team) => (
+                                    <Button
+                                      key={team.id}
+                                      onClick={() => handleDispatch(sos.id, team.id, 'team')}
+                                      disabled={dispatchingId === sos.id}
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                                    >
+                                      <Users className="w-3 h-3 mr-1" />
+                                      {team.team_name} ({team.members} members)
+                                    </Button>
+                                  ))}
+                                  {firstAidTeams.filter(t => t.status === 'available').length === 0 && (
+                                    <p className="text-sm text-muted-foreground">No available teams</p>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           )}
@@ -520,10 +640,19 @@ export default function MedicalDashboard() {
                                   animate={{ x: [0, 5, 0] }}
                                   transition={{ duration: 1, repeat: Infinity }}
                                 >
-                                  <Ambulance className="w-5 h-5 text-orange-600" />
+                                  {sos.assigned_resource_type === 'ambulance' ? (
+                                    <Ambulance className="w-5 h-5 text-orange-600" />
+                                  ) : sos.assigned_resource_type === 'booth' ? (
+                                    <Building2 className="w-5 h-5 text-green-600" />
+                                  ) : (
+                                    <Users className="w-5 h-5 text-blue-600" />
+                                  )}
                                 </motion.div>
                                 <span className="text-sm font-medium">
-                                  Ambulance en route to patient
+                                  {sos.assigned_resource_type === 'ambulance' ? 'Ambulance en route to patient' :
+                                   sos.assigned_resource_type === 'booth' ? 'Patient directed to medical booth' :
+                                   'First aid team responding'}
+                                  {sos.assigned_resource_name && ` - ${sos.assigned_resource_name}`}
                                 </span>
                               </div>
                               <Button
