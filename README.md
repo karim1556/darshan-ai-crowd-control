@@ -14,6 +14,11 @@ DARSHAN.AI is a comprehensive system designed to make large pilgrimages safer an
 - **Emergency SOS**: One-tap distress signal with automatic responder dispatch
 - **AI Darshan Guide**: Personalized routes and timing recommendations
 - **Safety Alerts**: Real-time notifications about crowd conditions and closures
+- **🆕 Darshan AI Chatbot**: Full-fledged AI assistant with voice chat support
+  - Real-time crowd and slot information
+  - Voice-to-voice conversations using LiveKit
+  - Quick action buttons for common queries
+  - Text-to-speech for AI responses
 
 ### Temple Admin Dashboard
 - **Live Capacity Management**: Monitor current crowd levels in real-time
@@ -40,6 +45,8 @@ DARSHAN.AI is a comprehensive system designed to make large pilgrimages safer an
 
 - **Frontend**: Next.js 16, React 19, TypeScript, Tailwind CSS v4
 - **Backend**: Next.js API Routes
+- **AI/ML**: Groq (LLaMA 3.3 70B), Browser Web Speech API (STT/TTS)
+- **Voice Chat**: LiveKit for real-time voice communication
 - **Real-time**: Polling-based updates with WebSocket-ready architecture
 - **Design System**: Custom semantic design tokens with dark mode support
 - **Authentication**: Mock authentication (ready for integration with Supabase, Auth.js, etc.)
@@ -66,6 +73,8 @@ DARSHAN.AI is a comprehensive system designed to make large pilgrimages safer an
            │ • SOS Management   │
            │ • Bookings         │
            │ • AI Guidance      │
+           │ • AI Chatbot       │
+           │ • Voice Chat       │
            │ • Incidents        │
            │ • Hospital Data    │
            │ • Analytics        │
@@ -86,12 +95,20 @@ DARSHAN.AI is a comprehensive system designed to make large pilgrimages safer an
 ### Pilgrim Services
 - `POST/GET /api/booking` - Slot reservations
 - `POST /api/ai-guide` - Route recommendations
+- `POST /api/chat` - AI Chatbot with RAG (streaming responses)
+- `GET /api/chat/context` - Get aggregated temple context for RAG
+
+### Voice Chat (LiveKit)
+- `POST /api/livekit/token` - Generate LiveKit access tokens
+- `POST /api/livekit/webhook` - Handle LiveKit room events
+- `POST /api/voice/transcribe` - Speech-to-text (browser Web Speech API)
+- `POST /api/voice/synthesize` - Text-to-speech (browser Web Speech API)
 
 ## Getting Started
 
 ### Prerequisites
 - Node.js 18+
-- npm or yarn
+- pnpm (recommended) or npm
 
 ### Installation
 
@@ -99,15 +116,35 @@ DARSHAN.AI is a comprehensive system designed to make large pilgrimages safer an
 ```bash
 git clone <repository>
 cd darshan-ai
-npm install
+pnpm install
 ```
 
-2. **Run development server**:
+2. **Configure environment variables**:
 ```bash
-npm run dev
+cp .env.example .env.local
 ```
 
-3. **Open in browser**:
+Add your API keys to `.env.local`:
+```env
+# Required for AI Chatbot (free API key from https://console.groq.com)
+GROQ_API_KEY=gsk_your-groq-api-key
+
+# Optional: LiveKit for voice chat
+NEXT_PUBLIC_LIVEKIT_URL=wss://your-project.livekit.cloud
+LIVEKIT_API_KEY=your-livekit-api-key
+LIVEKIT_API_SECRET=your-livekit-api-secret
+
+# Supabase (existing)
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
+3. **Run development server**:
+```bash
+pnpm dev
+```
+
+4. **Open in browser**:
 Navigate to `http://localhost:3000`
 
 ### Usage

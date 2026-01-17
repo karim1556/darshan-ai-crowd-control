@@ -371,6 +371,33 @@ export default function PilgrimApp() {
           </Card>
         </motion.div>
 
+        {/* AI Chatbot CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.12 }}
+        >
+          <Link href="/pilgrim/chat">
+            <Card className="p-4 mb-4 bg-gradient-to-r from-orange-500 to-amber-500 text-white border-0 shadow-lg shadow-orange-500/25 hover:shadow-xl hover:shadow-orange-500/30 transition-all cursor-pointer">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold flex items-center gap-2">
+                      Darshan AI Assistant
+                      <span className="px-2 py-0.5 text-xs bg-white/20 rounded-full">NEW</span>
+                    </h3>
+                    <p className="text-sm text-white/80">Ask about crowd, slots, gates & more</p>
+                  </div>
+                </div>
+                <ArrowRight className="w-5 h-5" />
+              </div>
+            </Card>
+          </Link>
+        </motion.div>
+
         {/* Book New Slot CTA */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

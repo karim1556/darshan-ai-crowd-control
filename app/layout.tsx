@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { AuthProvider } from "@/lib/auth-context"
 import { NotificationProvider } from "@/components/notification-provider"
+import { ChatbotWrapper } from "@/components/chatbot-wrapper"
 import { Toaster } from "sonner"
 import "./globals.css"
 
@@ -41,6 +42,7 @@ export default function RootLayout({
         <AuthProvider>
           <NotificationProvider>
             {children}
+            <ChatbotWrapper />
             <Toaster position="top-right" richColors />
           </NotificationProvider>
         </AuthProvider>
