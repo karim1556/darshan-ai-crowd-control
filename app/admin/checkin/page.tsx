@@ -43,8 +43,16 @@ interface CheckInResult {
   error?: string
 }
 
+const ZONES = [
+  { id: 'zone-gate', name: 'Main Gate Area' },
+  { id: 'zone-queue', name: 'Queue Zone' },
+  { id: 'zone-inner', name: 'Inner Sanctum' },
+  { id: 'zone-exit', name: 'Exit Corridor' },
+]
+
 export default function CheckInPage() {
   const [qrInput, setQrInput] = useState("")
+  const [selectedZone, setSelectedZone] = useState("zone-gate")
   const [result, setResult] = useState<CheckInResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [recentCheckIns, setRecentCheckIns] = useState<Booking[]>([])
@@ -118,13 +126,14 @@ export default function CheckInPage() {
         return
       }
 
-      // Perform check-in
+      // Perform check-in with zone
       const checkInRes = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'checkin',
-          bookingId
+          bookingId,
+          zone: selectedZone
         })
       })
 
@@ -249,6 +258,28 @@ export default function CheckInPage() {
                     disabled={loading}
                   />
                   <QrCode className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary" />
+                </div>
+
+                {/* Zone Selection */}
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Check-in Zone</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {ZONES.map((zone) => (
+                      <button
+                        key={zone.id}
+                        type="button"
+                        onClick={() => setSelectedZone(zone.id)}
+                        className={`p-3 border-2 rounded-lg flex items-center gap-2 transition-all text-left ${
+                          selectedZone === zone.id
+                            ? 'border-secondary bg-secondary/10'
+                            : 'border-border hover:border-secondary/50'
+                        }`}
+                      >
+                        <MapPin className={`w-4 h-4 ${selectedZone === zone.id ? 'text-secondary' : 'text-muted-foreground'}`} />
+                        <span className="text-sm font-medium">{zone.name}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">

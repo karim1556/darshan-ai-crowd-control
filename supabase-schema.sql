@@ -17,6 +17,11 @@ CREATE TABLE IF NOT EXISTS profiles (
 -- Enable RLS on profiles
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
+-- Ensure any existing policies are removed so the script can be re-run safely
+DROP POLICY IF EXISTS "Users can read own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
+DROP POLICY IF EXISTS "Enable insert for users" ON profiles;
+
 -- Allow users to read their own profile
 CREATE POLICY "Users can read own profile" ON profiles
   FOR SELECT USING (auth.uid() = id);
@@ -121,10 +126,30 @@ CREATE TABLE IF NOT EXISTS ambulances (
 CREATE TABLE IF NOT EXISTS security_units (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL UNIQUE,
+  unit_type TEXT NOT NULL DEFAULT 'police' CHECK (unit_type IN ('police', 'barricade', 'crowd-control')),
+  personnel_count INTEGER NOT NULL DEFAULT 6,
   status TEXT NOT NULL DEFAULT 'Available' CHECK (status IN ('Available', 'Busy', 'Offline')),
   zone TEXT NOT NULL DEFAULT 'Main Gate',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Incident reports table (for persistent security reports)
+CREATE TABLE IF NOT EXISTS incident_reports (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  report_id TEXT UNIQUE NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('crowd-surge', 'stampede-risk', 'fight', 'theft', 'suspicious', 'lost-person', 'infrastructure')),
+  location TEXT NOT NULL,
+  description TEXT NOT NULL,
+  severity TEXT NOT NULL DEFAULT 'medium' CHECK (severity IN ('low', 'medium', 'high', 'critical')),
+  status TEXT NOT NULL DEFAULT 'reported' CHECK (status IN ('reported', 'escalated', 'resolved')),
+  reported_by TEXT NOT NULL DEFAULT 'Control Room',
+  escalated_to TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  resolved_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_incident_reports_status ON incident_reports(status);
+CREATE INDEX IF NOT EXISTS idx_incident_reports_created ON incident_reports(created_at DESC);
 
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles(role);

@@ -19,13 +19,18 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
+          // Do not attempt to write to the incoming request cookies (not supported in Edge).
+          // Only set cookies on the outgoing response so they are sent to the client.
+          supabaseResponse = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) => {
+            try {
+              supabaseResponse.cookies.set(name, value, options)
+            } catch (e) {
+              // Fail-safe: log and continue.
+              // eslint-disable-next-line no-console
+              console.warn('[Middleware] failed to set response cookie', name, e)
+            }
           })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
         },
       },
     }

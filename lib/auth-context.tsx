@@ -195,6 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null)
       setRole(null)
       setSession(null)
+      setLoading(false)
       console.log('[Auth] signOut: completed')
     }
   }

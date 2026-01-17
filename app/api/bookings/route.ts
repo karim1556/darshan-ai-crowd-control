@@ -4,8 +4,10 @@ import {
   getBookingByBookingId, 
   getAllBookings, 
   getBookingsByDate,
+  getBookingsByUserEmail,
   checkInBooking, 
-  cancelBooking 
+  cancelBooking,
+  incrementZoneStat
 } from '@/lib/api'
 
 export async function GET(request: NextRequest) {
@@ -13,10 +15,17 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const bookingId = searchParams.get('bookingId')
     const date = searchParams.get('date')
+    const userEmail = searchParams.get('userEmail')
 
     if (bookingId) {
       const booking = await getBookingByBookingId(bookingId)
       return NextResponse.json(booking)
+    }
+
+    // Filter by user email for pilgrim dashboard
+    if (userEmail) {
+      const bookings = await getBookingsByUserEmail(userEmail)
+      return NextResponse.json(bookings)
     }
 
     if (date) {
@@ -42,6 +51,21 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Booking ID required' }, { status: 400 })
       }
       const result = await checkInBooking(data.bookingId)
+      
+      // If zone is specified, update that zone's count
+      if (data.zone) {
+        const zoneFieldMap: Record<string, 'gate_count' | 'queue_count' | 'inner_count' | 'exit_count'> = {
+          'zone-gate': 'gate_count',
+          'zone-queue': 'queue_count',
+          'zone-inner': 'inner_count',
+          'zone-exit': 'exit_count',
+        }
+        const zoneField = zoneFieldMap[data.zone]
+        if (zoneField) {
+          await incrementZoneStat(zoneField, result.members_count || 1)
+        }
+      }
+      
       return NextResponse.json(result)
     }
 
@@ -54,7 +78,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new booking
-    const { userName, userEmail, userPhone, date, slotId, membersCount, priorityType } = data
+    const { userName, userEmail, userPhone, date, slotId, membersCount, priorityType, userId } = data
 
     if (!userName || !date || !slotId || !membersCount) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -67,7 +91,8 @@ export async function POST(request: NextRequest) {
       date,
       slotId,
       membersCount: Number(membersCount),
-      priorityType: priorityType || 'normal'
+      priorityType: priorityType || 'normal',
+      userId
     })
 
     return NextResponse.json(booking, { status: 201 })

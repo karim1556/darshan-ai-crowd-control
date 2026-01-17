@@ -75,6 +75,7 @@ export async function createBooking(data: {
   slotId: string
   membersCount: number
   priorityType: 'normal' | 'elderly' | 'disabled' | 'women-with-children'
+  userId?: string
 }) {
   // Check slot availability
   const slot = await getSlotById(data.slotId)
@@ -104,6 +105,7 @@ export async function createBooking(data: {
     .from('bookings')
     .insert({
       booking_id: bookingId,
+      user_id: data.userId,
       user_name: data.userName,
       user_email: data.userEmail,
       user_phone: data.userPhone,
@@ -146,6 +148,34 @@ export async function getBookingsByUser(userName: string) {
       slot:slots(*)
     `)
     .ilike('user_name', `%${userName}%`)
+    .order('created_at', { ascending: false })
+  
+  if (error) throw error
+  return data as any[]
+}
+
+export async function getBookingsByUserEmail(userEmail: string) {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select(`
+      *,
+      slot:slots(*)
+    `)
+    .eq('user_email', userEmail)
+    .order('created_at', { ascending: false })
+  
+  if (error) throw error
+  return data as any[]
+}
+
+export async function getBookingsByUserId(userId: string) {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select(`
+      *,
+      slot:slots(*)
+    `)
+    .eq('user_id', userId)
     .order('created_at', { ascending: false })
   
   if (error) throw error
@@ -297,21 +327,16 @@ export async function incrementZoneStat(field: 'gate_count' | 'queue_count' | 'i
   })
 }
 
+// Check in a booking and update a specific zone count
+export async function checkInToZone(zoneField: 'gate_count' | 'queue_count' | 'inner_count' | 'exit_count', amount: number) {
+  return incrementZoneStat(zoneField, amount)
+}
+
+// Crowd simulation disabled to keep numbers stable
+// Numbers only change when pilgrims are checked in via QR
 export async function simulateCrowdFlow() {
-  const stats = await getZoneStats()
-  
-  // Simulate crowd movement
-  const gate = Math.max(0, Math.min(1800, stats.gate_count + Math.floor(Math.random() * 40 - 20)))
-  const queue = Math.max(0, Math.min(2000, stats.queue_count + Math.floor(Math.random() * 60 - 30)))
-  const inner = Math.max(0, Math.min(2500, stats.inner_count + Math.floor(Math.random() * 80 - 40)))
-  const exit = Math.max(0, Math.min(1500, stats.exit_count + Math.floor(Math.random() * 50 - 25)))
-  
-  return updateZoneStats({
-    gate_count: gate,
-    queue_count: queue,
-    inner_count: inner,
-    exit_count: exit
-  })
+  // No-op: crowd numbers are now updated only by explicit check-in actions
+  return getZoneStats()
 }
 
 // ============ SOS API ============
@@ -469,6 +494,141 @@ export async function updateSecurityUnitStatus(id: string, status: 'Available' |
   
   if (error) throw error
   return data as SecurityUnit
+}
+
+export async function deploySecurityUnit(id: string, zone: string, personnelCount?: number) {
+  const updates: Record<string, any> = { 
+    zone,
+    status: 'Busy'
+  }
+  if (personnelCount) {
+    updates.personnel_count = personnelCount
+  }
+  try {
+    const { data, error } = await supabase
+      .from('security_units')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data as SecurityUnit
+  } catch (e: any) {
+    // If the personnel_count column does not exist in the DB schema cache,
+    // retry without that field so deployments still work against older schemas.
+    if (e?.code === 'PGRST204' && updates.personnel_count !== undefined) {
+      const fallbackUpdates = { ...updates }
+      delete fallbackUpdates.personnel_count
+      const { data: data2, error: error2 } = await supabase
+        .from('security_units')
+        .update(fallbackUpdates)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error2) throw error2
+      return data2 as SecurityUnit
+    }
+
+    // Re-throw unexpected errors
+    throw e
+  }
+}
+
+export async function recallSecurityUnit(id: string) {
+  const { data, error } = await supabase
+    .from('security_units')
+    .update({ status: 'Available', zone: 'Control Room' })
+    .eq('id', id)
+    .select()
+    .single()
+  
+  if (error) throw error
+  return data as SecurityUnit
+}
+
+// ============ INCIDENT REPORTS API ============
+export interface IncidentReport {
+  id: string
+  report_id: string
+  type: string
+  location: string
+  description: string
+  severity: 'low' | 'medium' | 'high' | 'critical'
+  status: 'reported' | 'escalated' | 'resolved'
+  reported_by: string
+  escalated_to?: string
+  created_at: string
+  resolved_at?: string
+}
+
+export async function getIncidentReports() {
+  const { data, error } = await supabase
+    .from('incident_reports')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(50)
+  
+  if (error) throw error
+  return data as IncidentReport[]
+}
+
+export async function createIncidentReport(report: {
+  type: string
+  location: string
+  description: string
+  severity: 'low' | 'medium' | 'high' | 'critical'
+  reportedBy?: string
+}) {
+  const reportId = `RPT-${Date.now().toString(36).toUpperCase()}`
+  
+  const { data, error } = await supabase
+    .from('incident_reports')
+    .insert({
+      report_id: reportId,
+      type: report.type,
+      location: report.location,
+      description: report.description,
+      severity: report.severity,
+      reported_by: report.reportedBy || 'Control Room',
+      status: 'reported'
+    })
+    .select()
+    .single()
+  
+  if (error) throw error
+  return data as IncidentReport
+}
+
+export async function escalateIncidentReport(id: string, escalateTo: string) {
+  const { data, error } = await supabase
+    .from('incident_reports')
+    .update({ 
+      status: 'escalated',
+      escalated_to: escalateTo
+    })
+    .eq('id', id)
+    .select()
+    .single()
+  
+  if (error) throw error
+  return data as IncidentReport
+}
+
+export async function resolveIncidentReport(id: string) {
+  const { data, error } = await supabase
+    .from('incident_reports')
+    .update({ 
+      status: 'resolved',
+      resolved_at: new Date().toISOString()
+    })
+    .eq('id', id)
+    .select()
+    .single()
+  
+  if (error) throw error
+  return data as IncidentReport
 }
 
 // ============ DEMO DATA SEEDING ============

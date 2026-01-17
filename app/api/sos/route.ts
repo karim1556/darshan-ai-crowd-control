@@ -174,6 +174,8 @@ export async function PUT(request: NextRequest) {
       result = await assignSOSRequest(id, assignedTo, eta)
     } else if (action === 'resolve') {
       result = await resolveSOSRequest(id)
+    } else if (action === 'pending') {
+      result = await updateSOSRequest(id, { status: 'Pending', assigned_to: null, eta: null })
     } else if (action === 'enroute') {
       result = await updateSOSRequest(id, { status: 'Enroute', eta })
     } else {

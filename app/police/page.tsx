@@ -21,6 +21,7 @@ import {
   Bell,
   FileText,
   Navigation,
+  Activity,
   Layers,
   ArrowUpCircle,
   Send,
@@ -79,14 +80,18 @@ interface Alert {
 
 interface IncidentReport {
   id: string
+  report_id?: string
   type: string
   location: string
   description: string
   severity: string
   status: 'reported' | 'escalated' | 'resolved'
-  reportedBy: string
-  timestamp: Date
+  reported_by?: string
+  reportedBy?: string
+  timestamp?: Date
+  created_at?: string
   escalatedTo?: string
+  escalated_to?: string
 }
 
 export default function PoliceBoard() {
@@ -102,6 +107,10 @@ export default function PoliceBoard() {
   const [showAlerts, setShowAlerts] = useState(false)
   const [incidentReports, setIncidentReports] = useState<IncidentReport[]>([])
   const [showReportForm, setShowReportForm] = useState(false)
+  const [showDeployForm, setShowDeployForm] = useState(false)
+  const [selectedUnit, setSelectedUnit] = useState<SecurityUnit | null>(null)
+  const [deployZone, setDeployZone] = useState('')
+  const [deployPersonnel, setDeployPersonnel] = useState(6)
   const [newReport, setNewReport] = useState({
     type: 'crowd-surge',
     location: '',
@@ -158,10 +167,11 @@ export default function PoliceBoard() {
 
   const fetchData = async () => {
     try {
-      const [sosRes, unitsRes, zonesRes] = await Promise.all([
+      const [sosRes, unitsRes, zonesRes, reportsRes] = await Promise.all([
         fetch("/api/sos?type=security"),
         fetch("/api/security-units"),
-        fetch("/api/zones")
+        fetch("/api/zones"),
+        fetch("/api/incident-reports")
       ])
 
       if (sosRes.ok) {
@@ -171,12 +181,8 @@ export default function PoliceBoard() {
 
       if (unitsRes.ok) {
         const data = await unitsRes.json()
-        // Enhance units with types for deployment dashboard
-        const enhancedUnits = data.map((u: SecurityUnit, i: number) => ({
-          ...u,
-          unit_type: i % 3 === 0 ? 'police' : i % 3 === 1 ? 'barricade' : 'crowd-control'
-        }))
-        setUnits(enhancedUnits)
+        // Units already have unit_type from API
+        setUnits(data)
       }
 
       if (zonesRes.ok) {
@@ -190,6 +196,13 @@ export default function PoliceBoard() {
         }))
         setZones(enhancedZones)
         setAlerts(generateAlerts(enhancedZones))
+      }
+
+      if (reportsRes.ok) {
+        const data = await reportsRes.json()
+        if (Array.isArray(data)) {
+          setIncidentReports(data)
+        }
       }
     } catch (err) {
       console.error("Error fetching data:", err)
@@ -253,6 +266,79 @@ export default function PoliceBoard() {
     }
   }
 
+  const handleMarkPending = async (incidentId: string) => {
+    try {
+      const res = await fetch("/api/sos", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: incidentId,
+          action: 'pending'
+        }),
+      })
+
+      if (res.ok) {
+        toast.success('Incident marked as pending')
+        await fetchData()
+      }
+    } catch (err) {
+      toast.error('Failed to update incident')
+    }
+  }
+
+  const handleDeployUnit = async () => {
+    if (!selectedUnit || !deployZone) {
+      toast.error('Please select a unit and zone')
+      return
+    }
+
+    try {
+      const res = await fetch("/api/security-units", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: selectedUnit.id,
+          action: 'deploy',
+          zone: deployZone,
+          personnelCount: deployPersonnel
+        }),
+      })
+
+      if (res.ok) {
+        toast.success(`${selectedUnit.unit_name} deployed to ${deployZone}`)
+        setShowDeployForm(false)
+        setSelectedUnit(null)
+        setDeployZone('')
+        setDeployPersonnel(6)
+        await fetchData()
+      } else {
+        toast.error('Failed to deploy unit')
+      }
+    } catch (err) {
+      toast.error('Deployment error')
+    }
+  }
+
+  const handleRecallUnit = async (unitId: string, unitName: string) => {
+    try {
+      const res = await fetch("/api/security-units", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: unitId,
+          action: 'recall'
+        }),
+      })
+
+      if (res.ok) {
+        toast.success(`${unitName} recalled to Control Room`)
+        await fetchData()
+      }
+    } catch (err) {
+      toast.error('Failed to recall unit')
+    }
+  }
+
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "critical":
@@ -266,33 +352,84 @@ export default function PoliceBoard() {
     }
   }
 
-  // Handle incident report submission
+  // Handle incident report submission - now persists to database
   const handleSubmitReport = async () => {
     if (!newReport.location || !newReport.description) {
       toast.error('Please fill in all required fields')
       return
     }
     
-    const report: IncidentReport = {
-      id: `RPT-${Date.now()}`,
-      ...newReport,
-      status: 'reported',
-      reportedBy: 'Control Room',
-      timestamp: new Date()
+    try {
+      const res = await fetch('/api/incident-reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: newReport.type,
+          location: newReport.location,
+          description: newReport.description,
+          severity: newReport.severity,
+          reportedBy: 'Control Room'
+        })
+      })
+
+      if (res.ok) {
+        setNewReport({ type: 'crowd-surge', location: '', description: '', severity: 'medium' })
+        setShowReportForm(false)
+        toast.success('Incident reported successfully')
+        await fetchData()
+      } else {
+        toast.error('Failed to submit report')
+      }
+    } catch (err) {
+      toast.error('Error submitting report')
     }
-    
-    setIncidentReports(prev => [report, ...prev])
-    setNewReport({ type: 'crowd-surge', location: '', description: '', severity: 'medium' })
-    setShowReportForm(false)
-    toast.success('Incident reported successfully')
   }
 
-  // Handle escalation
-  const handleEscalate = (reportId: string, escalateTo: string) => {
-    setIncidentReports(prev => prev.map(r => 
-      r.id === reportId ? { ...r, status: 'escalated', escalatedTo: escalateTo } : r
-    ))
-    toast.success(`Incident escalated to ${escalateTo}`)
+  // Handle escalation - now persists to database
+  const handleEscalate = async (reportId: string, escalateTo: string) => {
+    try {
+      const res = await fetch('/api/incident-reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'escalate',
+          id: reportId,
+          escalateTo
+        })
+      })
+
+      if (res.ok) {
+        toast.success(`Incident escalated to ${escalateTo}`)
+        await fetchData()
+      } else {
+        toast.error('Failed to escalate incident')
+      }
+    } catch (err) {
+      toast.error('Escalation error')
+    }
+  }
+
+  // Handle report resolution
+  const handleResolveReport = async (reportId: string) => {
+    try {
+      const res = await fetch('/api/incident-reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'resolve',
+          id: reportId
+        })
+      })
+
+      if (res.ok) {
+        toast.success('Report marked as resolved')
+        await fetchData()
+      } else {
+        toast.error('Failed to resolve report')
+      }
+    } catch (err) {
+      toast.error('Error resolving report')
+    }
   }
 
   const pendingCount = incidents.filter(i => i.status === 'pending').length
@@ -621,14 +758,45 @@ export default function PoliceBoard() {
                               Unit deployed - En route to location
                             </span>
                           </div>
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => handleMarkPending(incident.id)}
+                              size="sm"
+                              variant="outline"
+                              className="border-orange-500 text-orange-600 hover:bg-orange-50"
+                            >
+                              <Clock className="w-3 h-3 mr-1" />
+                              Mark Pending
+                            </Button>
+                            <Button
+                              onClick={() => handleResolve(incident.id)}
+                              size="sm"
+                              variant="outline"
+                              className="border-green-500 text-green-600 hover:bg-green-50"
+                            >
+                              <CheckCircle2 className="w-3 h-3 mr-1" />
+                              Mark Resolved
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {incident.status === "resolved" && (
+                        <div className="flex items-center justify-between mt-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-green-600" />
+                            <span className="text-sm font-medium text-green-700 dark:text-green-400">
+                              Incident Resolved
+                            </span>
+                          </div>
                           <Button
-                            onClick={() => handleResolve(incident.id)}
+                            onClick={() => handleMarkPending(incident.id)}
                             size="sm"
                             variant="outline"
-                            className="border-green-500 text-green-600 hover:bg-green-50"
+                            className="border-orange-500 text-orange-600 hover:bg-orange-50"
                           >
-                            <CheckCircle2 className="w-3 h-3 mr-1" />
-                            Mark Resolved
+                            <Clock className="w-3 h-3 mr-1" />
+                            Reopen
                           </Button>
                         </div>
                       )}
@@ -757,6 +925,79 @@ export default function PoliceBoard() {
               exit={{ opacity: 0, y: -10 }}
               className="space-y-4"
             >
+              {/* Deploy Unit Modal */}
+              <AnimatePresence>
+                {showDeployForm && selectedUnit && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+                    onClick={() => setShowDeployForm(false)}
+                  >
+                    <motion.div
+                      initial={{ scale: 0.95, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.95, opacity: 0 }}
+                      className="bg-card rounded-xl p-6 w-full max-w-md"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <h3 className="font-bold text-lg mb-4">Deploy {selectedUnit.unit_name}</h3>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-sm font-medium mb-1 block">Target Zone *</label>
+                          <select 
+                            className="w-full p-2 border rounded-lg bg-background"
+                            value={deployZone}
+                            onChange={e => setDeployZone(e.target.value)}
+                          >
+                            <option value="">Select Zone...</option>
+                            {zones.map(z => (
+                              <option key={z.id} value={z.zone_name}>
+                                {z.zone_name} ({Math.round((z.current_count / z.capacity) * 100)}% capacity)
+                              </option>
+                            ))}
+                            <option value="Main Gate">Main Gate</option>
+                            <option value="Queue Area">Queue Area</option>
+                            <option value="Inner Temple">Inner Temple</option>
+                            <option value="Exit Zone">Exit Zone</option>
+                            <option value="Parking Area">Parking Area</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium mb-1 block">Personnel Count</label>
+                          <input 
+                            type="number"
+                            min="1"
+                            max="20"
+                            className="w-full p-2 border rounded-lg bg-background"
+                            value={deployPersonnel}
+                            onChange={e => setDeployPersonnel(Number(e.target.value))}
+                          />
+                        </div>
+                        <div className="p-3 bg-muted/50 rounded-lg">
+                          <p className="text-sm text-muted-foreground">
+                            <strong>Current Location:</strong> {selectedUnit.current_location}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            <strong>Unit Type:</strong> {selectedUnit.unit_type || 'police'}
+                          </p>
+                        </div>
+                        <div className="flex gap-2 pt-2">
+                          <Button variant="outline" onClick={() => setShowDeployForm(false)} className="flex-1">
+                            Cancel
+                          </Button>
+                          <Button onClick={handleDeployUnit} className="flex-1 bg-accent hover:bg-accent/90">
+                            <Navigation className="w-4 h-4 mr-2" />
+                            Deploy
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Deployment Summary Cards */}
               <div className="grid grid-cols-3 gap-4 mb-4">
                 <Card className="p-4 border-l-4 border-l-blue-500">
@@ -791,14 +1032,45 @@ export default function PoliceBoard() {
                 </Card>
               </div>
 
-              {/* Police Personnel */}
+              {/* Zone Crowd Status for deployment decisions */}
+              <Card className="p-4 mb-4">
+                <h4 className="font-bold mb-3 flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-accent" />
+                  Current Crowd Levels (for deployment decisions)
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {zones.map(zone => {
+                    const pct = zone.capacity > 0 ? Math.round((zone.current_count / zone.capacity) * 100) : 0
+                    return (
+                      <div key={zone.id} className={`p-2 rounded-lg text-center ${
+                        pct >= 90 ? 'bg-red-100 dark:bg-red-900/30' :
+                        pct >= 70 ? 'bg-orange-100 dark:bg-orange-900/30' :
+                        pct >= 50 ? 'bg-yellow-100 dark:bg-yellow-900/30' :
+                        'bg-green-100 dark:bg-green-900/30'
+                      }`}>
+                        <p className="text-xs font-medium">{zone.zone_name}</p>
+                        <p className={`text-lg font-bold ${
+                          pct >= 90 ? 'text-red-600' :
+                          pct >= 70 ? 'text-orange-600' :
+                          pct >= 50 ? 'text-yellow-600' :
+                          'text-green-600'
+                        }`}>{pct}%</p>
+                      </div>
+                    )
+                  })}
+                </div>
+              </Card>
+
+              {/* All Units with Deploy/Recall Actions */}
               <Card className="p-6">
-                <h3 className="font-bold mb-4 flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-blue-500" />
-                  Police Personnel Deployment
-                </h3>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {policeUnits.map((unit, index) => (
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-blue-500" />
+                    All Security Units
+                  </h3>
+                </div>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {units.map((unit, index) => (
                     <motion.div
                       key={unit.id}
                       initial={{ opacity: 0, scale: 0.95 }}
@@ -810,13 +1082,10 @@ export default function PoliceBoard() {
                           : 'border-orange-300 bg-orange-50 dark:bg-orange-900/20'
                       }`}
                     >
-                      <div className="flex justify-between items-start">
+                      <div className="flex justify-between items-start mb-3">
                         <div>
                           <h4 className="font-bold">{unit.unit_name}</h4>
-                          <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />{unit.current_location}
-                          </p>
-                          <p className="text-sm text-muted-foreground">{unit.personnel_count} personnel</p>
+                          <p className="text-xs text-muted-foreground capitalize">{unit.unit_type || 'police'}</p>
                         </div>
                         <span className={`px-2 py-1 rounded text-xs font-bold ${
                           unit.status === 'available' ? 'bg-green-600 text-white' : 'bg-orange-600 text-white'
@@ -824,63 +1093,39 @@ export default function PoliceBoard() {
                           {(unit.status ?? 'unknown').toUpperCase()}
                         </span>
                       </div>
+                      <p className="text-sm text-muted-foreground flex items-center gap-1 mb-1">
+                        <MapPin className="w-3 h-3" />{unit.current_location}
+                      </p>
+                      <p className="text-sm text-muted-foreground mb-3">{unit.personnel_count} personnel</p>
+                      
+                      {unit.status === 'available' ? (
+                        <Button
+                          size="sm"
+                          className="w-full bg-accent hover:bg-accent/90"
+                          onClick={() => {
+                            setSelectedUnit(unit)
+                            setDeployPersonnel(unit.personnel_count)
+                            setShowDeployForm(true)
+                          }}
+                        >
+                          <Navigation className="w-3 h-3 mr-1" />
+                          Deploy Unit
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full border-green-500 text-green-600 hover:bg-green-50"
+                          onClick={() => handleRecallUnit(unit.id, unit.unit_name)}
+                        >
+                          <ArrowLeft className="w-3 h-3 mr-1" />
+                          Recall to Base
+                        </Button>
+                      )}
                     </motion.div>
                   ))}
                 </div>
               </Card>
-
-              {/* Barricades & Crowd Control */}
-              <div className="grid md:grid-cols-2 gap-4">
-                <Card className="p-6">
-                  <h3 className="font-bold mb-4 flex items-center gap-2">
-                    <Layers className="w-5 h-5 text-orange-500" />
-                    Barricade Units
-                  </h3>
-                  <div className="space-y-3">
-                    {barricadeUnits.map((unit) => (
-                      <div key={unit.id} className="p-3 border rounded-lg flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">{unit.unit_name}</p>
-                          <p className="text-xs text-muted-foreground">{unit.current_location}</p>
-                        </div>
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          unit.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
-                        }`}>
-                          {(unit.status ?? 'unknown').toUpperCase()}
-                        </span>
-                      </div>
-                    ))}
-                    {barricadeUnits.length === 0 && (
-                      <p className="text-sm text-muted-foreground text-center py-4">No barricade units</p>
-                    )}
-                  </div>
-                </Card>
-
-                <Card className="p-6">
-                  <h3 className="font-bold mb-4 flex items-center gap-2">
-                    <Users className="w-5 h-5 text-purple-500" />
-                    Crowd Control Units
-                  </h3>
-                  <div className="space-y-3">
-                    {crowdControlUnits.map((unit) => (
-                      <div key={unit.id} className="p-3 border rounded-lg flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">{unit.unit_name}</p>
-                          <p className="text-xs text-muted-foreground">{unit.current_location}</p>
-                        </div>
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          unit.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
-                        }`}>
-                          {(unit.status ?? 'unknown').toUpperCase()}
-                        </span>
-                      </div>
-                    ))}
-                    {crowdControlUnits.length === 0 && (
-                      <p className="text-sm text-muted-foreground text-center py-4">No crowd control units</p>
-                    )}
-                  </div>
-                </Card>
-              </div>
             </motion.div>
           )}
 
@@ -994,16 +1239,20 @@ export default function PoliceBoard() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {incidentReports.map((report) => (
+                    {incidentReports.map((report) => {
+                      const timestamp = report.created_at ? new Date(report.created_at) : report.timestamp ? new Date(report.timestamp) : new Date()
+                      const escalatedTo = report.escalated_to || report.escalatedTo
+                      return (
                       <div key={report.id} className={`p-4 border rounded-xl ${
                         report.severity === 'critical' ? 'border-red-300 bg-red-50 dark:bg-red-900/20' :
                         report.severity === 'high' ? 'border-orange-300 bg-orange-50 dark:bg-orange-900/20' :
+                        report.status === 'resolved' ? 'border-green-300 bg-green-50 dark:bg-green-900/20' :
                         'border-border'
                       }`}>
                         <div className="flex justify-between items-start mb-2">
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="font-bold">{report.type.replace('-', ' ').toUpperCase()}</span>
+                              <span className="font-bold">{report.type.replace(/-/g, ' ').toUpperCase()}</span>
                               <span className={`px-2 py-0.5 rounded text-xs ${
                                 report.status === 'resolved' ? 'bg-green-100 text-green-800' :
                                 report.status === 'escalated' ? 'bg-purple-100 text-purple-800' :
@@ -1014,7 +1263,7 @@ export default function PoliceBoard() {
                             </div>
                             <p className="text-sm text-muted-foreground mt-1">{report.description}</p>
                             <p className="text-xs text-muted-foreground mt-1">
-                              📍 {report.location} • {format(report.timestamp, 'HH:mm:ss')}
+                              📍 {report.location} • {format(timestamp, 'HH:mm:ss')}
                             </p>
                           </div>
                           <span className={`px-2 py-1 rounded text-xs font-bold ${
@@ -1027,7 +1276,7 @@ export default function PoliceBoard() {
                           </span>
                         </div>
                         {report.status === 'reported' && (
-                          <div className="flex gap-2 mt-3">
+                          <div className="flex flex-wrap gap-2 mt-3">
                             <Button 
                               size="sm" 
                               variant="outline"
@@ -1046,15 +1295,40 @@ export default function PoliceBoard() {
                               <ArrowUpCircle className="w-3 h-3 mr-1" />
                               Escalate to Medical
                             </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleResolveReport(report.id)}
+                              className="text-xs border-green-500 text-green-600 hover:bg-green-50"
+                            >
+                              <CheckCircle2 className="w-3 h-3 mr-1" />
+                              Resolve
+                            </Button>
                           </div>
                         )}
-                        {report.escalatedTo && (
-                          <p className="text-xs text-purple-600 mt-2 font-medium">
-                            ↗ Escalated to: {report.escalatedTo}
+                        {report.status === 'escalated' && (
+                          <div className="flex items-center justify-between mt-3">
+                            <p className="text-xs text-purple-600 font-medium">
+                              ↗ Escalated to: {escalatedTo}
+                            </p>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleResolveReport(report.id)}
+                              className="text-xs border-green-500 text-green-600 hover:bg-green-50"
+                            >
+                              <CheckCircle2 className="w-3 h-3 mr-1" />
+                              Resolve
+                            </Button>
+                          </div>
+                        )}
+                        {report.status === 'resolved' && (
+                          <p className="text-xs text-green-600 font-medium mt-2">
+                            ✓ Resolved
                           </p>
                         )}
                       </div>
-                    ))}
+                    )})}
                   </div>
                 )}
               </Card>

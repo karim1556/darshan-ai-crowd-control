@@ -28,6 +28,7 @@ import {
 import Link from "next/link"
 import { format } from "date-fns"
 import { toast } from "sonner"
+import { useAuth } from "@/lib/auth-context"
 
 interface Booking {
   id: string
@@ -62,6 +63,7 @@ interface Notification {
 }
 
 export default function PilgrimApp() {
+  const { user } = useAuth()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [zones, setZones] = useState<ZoneStats[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -71,25 +73,35 @@ export default function PilgrimApp() {
   const [showNotifications, setShowNotifications] = useState(false)
 
   useEffect(() => {
+    // Clear bookings when user changes to avoid stale data
+    setBookings([])
+    setLoading(true)
     fetchData()
-    const interval = setInterval(fetchData, 5000)
+    const interval = setInterval(fetchData, 10000) // Reduced frequency
     return () => clearInterval(interval)
-  }, [])
+  }, [user?.email]) // Re-run when user email changes
 
   const fetchData = async () => {
     try {
-      const [bookingsRes, zonesRes] = await Promise.all([
-        fetch("/api/bookings"),
-        fetch("/api/zones")
-      ])
-
+      // Only fetch user-specific bookings if logged in with email
+      const userEmail = user?.email
+      
       let bookingsData: Booking[] = []
       
-      if (bookingsRes.ok) {
-        const data = await bookingsRes.json()
-        bookingsData = data.filter((b: Booking) => b.status !== 'Cancelled')
-        setBookings(bookingsData)
+      // Fetch zones regardless of user
+      const zonesRes = await fetch("/api/zones")
+      
+      // Only fetch bookings if we have a logged-in user with email
+      if (userEmail) {
+        const bookingsRes = await fetch(`/api/bookings?userEmail=${encodeURIComponent(userEmail)}`)
+        if (bookingsRes.ok) {
+          const data = await bookingsRes.json()
+          bookingsData = data.filter((b: Booking) => b.status !== 'Cancelled')
+        }
       }
+      // If no user email, bookingsData stays empty (new/logged-out users see empty dashboard)
+      
+      setBookings(bookingsData)
 
       if (zonesRes.ok) {
         const data = await zonesRes.json()

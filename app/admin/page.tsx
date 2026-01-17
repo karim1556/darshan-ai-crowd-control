@@ -25,10 +25,13 @@ import {
   Settings,
   FileText,
   PieChart,
-  LogOut
+  LogOut,
+  Plus,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react"
 import Link from "next/link"
-import { format } from "date-fns"
+import { format, addDays, subDays } from "date-fns"
 import { toast } from "sonner"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/lib/auth-context"
@@ -98,20 +101,23 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [lockingSlot, setLockingSlot] = useState<string | null>(null)
+  const [selectedDate, setSelectedDate] = useState(new Date())
+  const [showCreateSlot, setShowCreateSlot] = useState(false)
+  const [newSlot, setNewSlot] = useState({ startTime: '06:00', endTime: '08:00', capacity: 500 })
 
   useEffect(() => {
     fetchData()
-    const interval = setInterval(fetchData, 5000)
+    const interval = setInterval(fetchData, 30000) // Reduced polling frequency
     return () => clearInterval(interval)
-  }, [])
+  }, [selectedDate])
 
   const fetchData = async () => {
     try {
-      const today = format(new Date(), 'yyyy-MM-dd')
+      const dateStr = format(selectedDate, 'yyyy-MM-dd')
       const [zonesRes, bookingsRes, slotsRes, sosRes] = await Promise.all([
         fetch("/api/zones"),
-        fetch(`/api/bookings?date=${today}`),
-        fetch(`/api/slots?date=${today}`),
+        fetch(`/api/bookings?date=${dateStr}`),
+        fetch(`/api/slots?date=${dateStr}`),
         fetch("/api/sos?type=all")
       ])
 
@@ -189,6 +195,34 @@ export default function AdminDashboard() {
     await fetchData()
     setRefreshing(false)
     toast.success('Dashboard refreshed')
+  }
+
+  const handleCreateSlot = async () => {
+    try {
+      const dateStr = format(selectedDate, 'yyyy-MM-dd')
+      const res = await fetch('/api/slots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: dateStr,
+          startTime: newSlot.startTime,
+          endTime: newSlot.endTime,
+          maxCapacity: newSlot.capacity
+        })
+      })
+      
+      if (res.ok) {
+        toast.success('Slot created successfully')
+        setShowCreateSlot(false)
+        setNewSlot({ startTime: '06:00', endTime: '08:00', capacity: 500 })
+        await fetchData()
+      } else {
+        const err = await res.json()
+        toast.error(err.error || 'Failed to create slot')
+      }
+    } catch (error) {
+      toast.error('Error creating slot')
+    }
   }
 
   // Seed functionality removed — provide a safe no-op with user feedback
@@ -593,7 +627,20 @@ export default function AdminDashboard() {
             >
               <Card className="p-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-bold">Today's Bookings ({bookings.length})</h3>
+                  <div className="flex items-center gap-4">
+                    <h3 className="font-bold">Bookings for {format(selectedDate, 'MMMM d, yyyy')} ({bookings.length})</h3>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => setSelectedDate(subDays(selectedDate, 1))}>
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date())}>
+                        Today
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => setSelectedDate(addDays(selectedDate, 1))}>
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
                   <div className="flex gap-2">
                     <span className="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-full text-sm font-bold">
                       {checkedInToday} checked in
@@ -653,11 +700,79 @@ export default function AdminDashboard() {
             >
               <Card className="p-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-bold flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-secondary" />
-                    Today's Slots ({format(new Date(), 'MMMM d, yyyy')})
-                  </h3>
+                  <div className="flex items-center gap-4">
+                    <h3 className="font-bold flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-secondary" />
+                      Slots for {format(selectedDate, 'MMMM d, yyyy')}
+                    </h3>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => setSelectedDate(subDays(selectedDate, 1))}>
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date())}>
+                        Today
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => setSelectedDate(addDays(selectedDate, 1))}>
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <Button onClick={() => setShowCreateSlot(!showCreateSlot)} className="bg-secondary hover:bg-secondary/90">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Slot
+                  </Button>
                 </div>
+
+                {/* Create Slot Form */}
+                {showCreateSlot && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mb-6 p-4 border border-secondary/30 rounded-xl bg-secondary/5"
+                  >
+                    <h4 className="font-semibold mb-4">Create New Slot</h4>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-sm font-medium mb-1 block">Start Time</label>
+                        <input
+                          type="time"
+                          value={newSlot.startTime}
+                          onChange={(e) => setNewSlot({ ...newSlot, startTime: e.target.value })}
+                          className="w-full px-3 py-2 border rounded-lg bg-background"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium mb-1 block">End Time</label>
+                        <input
+                          type="time"
+                          value={newSlot.endTime}
+                          onChange={(e) => setNewSlot({ ...newSlot, endTime: e.target.value })}
+                          className="w-full px-3 py-2 border rounded-lg bg-background"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium mb-1 block">Capacity</label>
+                        <input
+                          type="number"
+                          value={newSlot.capacity}
+                          onChange={(e) => setNewSlot({ ...newSlot, capacity: parseInt(e.target.value) || 500 })}
+                          className="w-full px-3 py-2 border rounded-lg bg-background"
+                          min="1"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <Button onClick={handleCreateSlot} className="bg-secondary hover:bg-secondary/90">
+                        Create Slot
+                      </Button>
+                      <Button variant="outline" onClick={() => setShowCreateSlot(false)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </motion.div>
+                )}
+
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {slots.map((slot, index) => {
                     const percentage = Math.round((slot.booked_count / slot.capacity) * 100)
