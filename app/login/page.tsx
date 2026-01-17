@@ -101,7 +101,7 @@ function LoginForm() {
               Back to Home
             </Link>
             <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/60 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-4 shadow-lg shadow-primary/25">
-              🙏
+              <img src="/logo.png" alt="DARSHAN.AI" className="w-12 h-12 object-contain" />
             </div>
             <h1 className="text-2xl font-bold">
               {isSignUp ? 'Create Account' : 'Welcome Back'}

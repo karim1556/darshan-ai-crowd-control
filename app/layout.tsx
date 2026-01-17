@@ -14,21 +14,9 @@ export const metadata: Metadata = {
   description: "Intelligent crowd control and safety management for pilgrimages",
   generator: "v0.app",
   icons: {
-    icon: [
-      {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/icon.svg",
-        type: "image/svg+xml",
-      },
-    ],
-    apple: "/apple-icon.png",
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
   },
 }
 
@@ -39,6 +27,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/logo.png" sizes="32x32" />
+        <link rel="icon" href="/logo.png" sizes="192x192" />
+        <link rel="icon" href="/logo.png" sizes="512x512" />
+        <link rel="shortcut icon" href="/logo.png" />
+        <link rel="apple-touch-icon" href="/logo.png" />
+        <meta name="theme-color" content="#93623f" />
+      </head>
       <body className={`font-sans antialiased`}>
         <AuthProvider>
           {children}

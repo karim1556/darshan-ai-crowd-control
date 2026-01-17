@@ -80,9 +80,9 @@ export default function LandingPage() {
               initial={{ rotate: -10 }}
               animate={{ rotate: 0 }}
               className="w-10 h-10 bg-gradient-to-br from-primary to-primary/60 rounded-xl flex items-center justify-center text-primary-foreground font-bold shadow-lg shadow-primary/25"
-            >
-              🙏
-            </motion.div>
+              >
+                <img src="/logo.png" alt="DARSHAN.AI" className="w-8 h-8 object-contain" />
+              </motion.div>
             <div>
               <span className="text-xl font-bold text-primary">DARSHAN.AI</span>
               <p className="text-xs text-muted-foreground">Temple Crowd Management</p>

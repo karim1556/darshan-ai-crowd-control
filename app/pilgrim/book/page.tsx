@@ -143,7 +143,7 @@ export default function BookSlotPage() {
             </Link>
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/60 rounded-xl flex items-center justify-center text-primary-foreground font-bold shadow-lg shadow-primary/25">
-                D
+                <img src="/logo.png" alt="DARSHAN.AI" className="w-6 h-6 object-contain" />
               </div>
               <div>
                 <span className="font-bold text-lg text-primary">DARSHAN.AI</span>
