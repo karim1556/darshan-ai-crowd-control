@@ -23,7 +23,9 @@ import {
   Bell,
   Accessibility,
   Baby,
-  Heart
+  Heart,
+  Flower2,
+  Music2
 } from "lucide-react"
 import Link from "next/link"
 import { format } from "date-fns"
@@ -393,6 +395,43 @@ export default function PilgrimApp() {
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5" />
+              </div>
+            </Card>
+          </Link>
+        </motion.div>
+
+        {/* Seva Marketplace & Holy Music - X-Factor Features */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.13 }}
+          className="grid grid-cols-2 gap-3 mb-4"
+        >
+          <Link href="/pilgrim/marketplace">
+            <Card className="p-4 bg-gradient-to-br from-pink-500 to-rose-500 text-white border-0 shadow-lg hover:shadow-xl transition-all cursor-pointer h-full">
+              <div className="flex flex-col items-center text-center gap-2">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Flower2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">Seva Marketplace</h3>
+                  <p className="text-xs text-white/80">Flowers, Prasad & Puja Items</p>
+                </div>
+                <span className="px-2 py-0.5 text-xs bg-white/20 rounded-full">Delivery to Queue!</span>
+              </div>
+            </Card>
+          </Link>
+          <Link href="/pilgrim/music">
+            <Card className="p-4 bg-gradient-to-br from-purple-500 to-indigo-500 text-white border-0 shadow-lg hover:shadow-xl transition-all cursor-pointer h-full">
+              <div className="flex flex-col items-center text-center gap-2">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Music2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">Holy Music</h3>
+                  <p className="text-xs text-white/80">Bhajans, Mantras & Aarti</p>
+                </div>
+                <span className="px-2 py-0.5 text-xs bg-white/20 rounded-full">Listen While Waiting</span>
               </div>
             </Card>
           </Link>

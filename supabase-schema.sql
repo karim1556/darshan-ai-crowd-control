@@ -267,3 +267,117 @@ BEGIN
   END IF;
 END;
 $$;
+
+-- ============ VENDOR MARKETPLACE (Flower Delivery Service) ============
+
+-- Vendors table (flower/prasad sellers near temple)
+CREATE TABLE IF NOT EXISTS vendors (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  email TEXT,
+  shop_name TEXT NOT NULL,
+  location TEXT NOT NULL, -- e.g., "Near Gate A", "Temple Street"
+  category TEXT NOT NULL DEFAULT 'flowers' CHECK (category IN ('flowers', 'prasad', 'puja-items', 'garlands', 'coconuts', 'sweets')),
+  rating DECIMAL(2,1) DEFAULT 4.5,
+  total_orders INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  delivery_radius TEXT DEFAULT 'All Zones', -- Which queue zones they deliver to
+  avg_delivery_time INTEGER DEFAULT 10, -- in minutes
+  image_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Vendor products/items
+CREATE TABLE IF NOT EXISTS vendor_products (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  vendor_id UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  price DECIMAL(10,2) NOT NULL,
+  category TEXT NOT NULL DEFAULT 'flowers' CHECK (category IN ('flowers', 'prasad', 'puja-items', 'garlands', 'coconuts', 'sweets')),
+  image_url TEXT,
+  is_available BOOLEAN DEFAULT true,
+  popular BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Vendor orders from pilgrims
+CREATE TABLE IF NOT EXISTS vendor_orders (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id TEXT UNIQUE NOT NULL,
+  vendor_id UUID NOT NULL REFERENCES vendors(id),
+  pilgrim_name TEXT NOT NULL,
+  pilgrim_phone TEXT NOT NULL,
+  pilgrim_location TEXT NOT NULL, -- e.g., "Queue Zone - Position 234", "Near Gate B"
+  booking_id TEXT, -- Link to their darshan booking
+  items JSONB NOT NULL, -- [{product_id, name, quantity, price}]
+  total_amount DECIMAL(10,2) NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'preparing', 'out-for-delivery', 'delivered', 'cancelled')),
+  payment_status TEXT NOT NULL DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid', 'failed')),
+  delivery_notes TEXT,
+  estimated_delivery INTEGER DEFAULT 15, -- minutes
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  delivered_at TIMESTAMPTZ
+);
+
+-- Create indexes for vendor system
+CREATE INDEX IF NOT EXISTS idx_vendors_category ON vendors(category);
+CREATE INDEX IF NOT EXISTS idx_vendors_active ON vendors(is_active);
+CREATE INDEX IF NOT EXISTS idx_vendor_products_vendor ON vendor_products(vendor_id);
+CREATE INDEX IF NOT EXISTS idx_vendor_orders_status ON vendor_orders(status);
+CREATE INDEX IF NOT EXISTS idx_vendor_orders_vendor ON vendor_orders(vendor_id);
+
+-- ============ HOLY MUSIC LIBRARY ============
+
+-- Music tracks table
+CREATE TABLE IF NOT EXISTS holy_music (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title TEXT NOT NULL,
+  artist TEXT,
+  album TEXT,
+  category TEXT NOT NULL DEFAULT 'bhajan' CHECK (category IN ('bhajan', 'aarti', 'mantra', 'kirtan', 'meditation', 'stotram', 'chalisa')),
+  duration INTEGER NOT NULL, -- in seconds
+  audio_url TEXT NOT NULL,
+  cover_image TEXT,
+  deity TEXT, -- e.g., "Shiva", "Krishna", "Hanuman", "Lakshmi"
+  language TEXT DEFAULT 'Hindi',
+  plays_count INTEGER DEFAULT 0,
+  is_featured BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- User's music favorites/playlists
+CREATE TABLE IF NOT EXISTS user_music_favorites (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id TEXT NOT NULL,
+  music_id UUID NOT NULL REFERENCES holy_music(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, music_id)
+);
+
+-- Music play history (for recommendations)
+CREATE TABLE IF NOT EXISTS music_play_history (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id TEXT NOT NULL,
+  music_id UUID NOT NULL REFERENCES holy_music(id) ON DELETE CASCADE,
+  played_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_holy_music_category ON holy_music(category);
+CREATE INDEX IF NOT EXISTS idx_holy_music_deity ON holy_music(deity);
+CREATE INDEX IF NOT EXISTS idx_holy_music_featured ON holy_music(is_featured);
+CREATE INDEX IF NOT EXISTS idx_user_favorites_user ON user_music_favorites(user_id);
+
+-- Enable realtime for vendor orders
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'vendor_orders'
+  ) THEN
+    EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE public.vendor_orders';
+  END IF;
+END;
+$$;
